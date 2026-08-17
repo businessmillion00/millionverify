@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
+    "admin:promote": "tsx prisma/promote-admin.ts",
     "db:up": "docker start bm-postgres || docker run -d --name bm-postgres -e POSTGRES_USER=bm -e POSTGRES_PASSWORD=bmlocal -e POSTGRES_DB=businessmillion -p 5433:5432 postgres:16-alpine",
     "db:down": "docker stop bm-postgres"
   },

@@ -25,22 +25,50 @@ export function Reveal({ children, stagger, delay = 0, className }: Props) {
         ? gsap.utils.toArray<HTMLElement>(stagger)
         : [root.current!];
 
-      gsap.from(targets, {
-        y: 40,
-        opacity: 0,
-        duration: 0.9,
-        delay,
-        stagger: stagger ? 0.09 : 0,
-        ease: 'power3.out',
-        scrollTrigger: {
-          trigger: root.current,
-          start: 'top 82%',
-          once: true,
+      if (targets.length === 0) return;
+
+      /*
+       * `fromTo` com immediateRender: false, e não `from`.
+       *
+       * `from` aplica opacity: 0 na hora e só devolve o conteúdo se o gatilho
+       * disparar — falha FECHADA: qualquer medição errada deixa a tela em
+       * branco para sempre. Foi o que aconteceu na compra de tokens, onde a
+       * sidebar do painel anima o padding e move tudo depois da medição.
+       *
+       * Assim o conteúdo nasce visível e a animação só o toca quando de fato
+       * roda. Se o ScrollTrigger nunca disparar, o usuário vê a página.
+       */
+      gsap.fromTo(
+        targets,
+        { y: 40, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.9,
+          delay,
+          stagger: stagger ? 0.09 : 0,
+          ease: 'power3.out',
+          immediateRender: false,
+          scrollTrigger: {
+            trigger: root.current,
+            start: 'top 92%',
+            once: true,
+          },
         },
-      });
+      );
     }, root);
 
-    return () => ctx.revert();
+    /*
+     * A medição inicial acontece antes de o layout assentar (fontes, imagens e
+     * a transição de padding da sidebar). Sem este refresh o gatilho guarda uma
+     * posição que o scroll nunca cruza.
+     */
+    const refresh = window.requestAnimationFrame(() => ScrollTrigger.refresh());
+
+    return () => {
+      window.cancelAnimationFrame(refresh);
+      ctx.revert();
+    };
   }, [stagger, delay]);
 
   return (
