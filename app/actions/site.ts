@@ -5,8 +5,13 @@ import { CreateSiteSchema } from '@/lib/validators/site';
 import { auth } from '@/lib/auth';
 import { brasilAPIService } from '@/services/brasil-api';
 import { enqueueSiteBuild } from '@/lib/site/provision';
+import { TOKENS_PER_SITE } from '@/lib/constants';
 
-const TOKENS_PER_SITE_CREATION = 10;
+/*
+ * Cobrança da criação. Vem da constante compartilhada: um valor próprio aqui
+ * divergia do preço anunciado na tela sem ninguém perceber.
+ */
+const TOKENS_PER_SITE_CREATION = TOKENS_PER_SITE;
 
 export async function createSite(input: unknown) {
   try {

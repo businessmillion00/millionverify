@@ -6,7 +6,7 @@ import { ptBR } from 'date-fns/locale';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getSitesByUser } from '@/app/actions/site';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { Reveal } from '@/components/ui/reveal';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { TokenBalance } from '@/components/dashboard/token-balance';
@@ -238,7 +238,7 @@ export default async function DashboardPage() {
         ) : (
           <div className="mt-6">
             <EmptyState
-              title={`Seu primeiro site está a ${TOKENS_PER_SITE} tokens de distância`}
+              title={`Seu primeiro site está a ${tokenLabel(TOKENS_PER_SITE)} de distância`}
               description="Informe o CNPJ, escolha o subdomínio e publicamos a página com a meta tag de verificação já no lugar."
               action={
                 <>

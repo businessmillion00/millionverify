@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { PackagePicker } from '@/components/billing/package-picker';
 import {
@@ -94,7 +94,7 @@ export default async function BillingPage() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Comprar tokens</h1>
           <p className="mt-1 text-sm text-dark-400">
-            Cada site publicado consome {TOKENS_PER_SITE} tokens. Sem
+            Cada site publicado consome {tokenLabel(TOKENS_PER_SITE)}. Sem
             mensalidade — os tokens não expiram.
           </p>
         </div>
@@ -114,7 +114,7 @@ export default async function BillingPage() {
           value={Math.floor(user.tokenBalance / TOKENS_PER_SITE).toLocaleString(
             'pt-BR'
           )}
-          hint={`${TOKENS_PER_SITE} tokens por site`}
+          hint={`${tokenLabel(TOKENS_PER_SITE)} por site`}
         />
         <Stat
           label="Total investido"

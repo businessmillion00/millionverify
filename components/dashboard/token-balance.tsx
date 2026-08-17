@@ -4,7 +4,7 @@ import { useEffect, useId, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import gsap from 'gsap';
 import { motion, useReducedMotion } from 'framer-motion';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
 const fmtInt = (n: number) => Math.round(n).toLocaleString('pt-BR');
@@ -139,7 +139,7 @@ export function TokenBalance({
             {sitesDisponiveis > 0
               ? `${fmtInt(sitesDisponiveis)} ${sitesDisponiveis === 1 ? 'site disponível' : 'sites disponíveis'}`
               : 'Nenhum site disponível'}{' '}
-            <span className="text-dark-500">· {TOKENS_PER_SITE} tokens por site</span>
+            <span className="text-dark-500">· {tokenLabel(TOKENS_PER_SITE)} por site</span>
           </p>
         </div>
 

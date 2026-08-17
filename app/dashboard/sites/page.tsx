@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { siteHost } from '@/lib/subdomain';
 
 export const dynamic = 'force-dynamic';
@@ -107,7 +107,7 @@ export default async function DashboardSitesPage({ searchParams }: Props) {
             <span className="tabular-nums text-white">
               {totalSites.toLocaleString('pt-BR')}/{MAX_SITES}
             </span>{' '}
-            sites · {TOKENS_PER_SITE} tokens por site
+            sites · {tokenLabel(TOKENS_PER_SITE)} por site
           </p>
         </div>
 

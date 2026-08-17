@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { eachDayOfInterval, format, startOfDay, subDays } from 'date-fns';
 import { getRevenueOverview } from '@/app/actions/admin';
 import { prisma } from '@/lib/prisma';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatTile } from '@/components/admin/stat-tile';
 import { RevenueChart, type PontoFaturamento } from '@/components/admin/revenue-chart';
@@ -110,7 +110,7 @@ export default async function AdminDashboard() {
         <StatTile
           label="Tokens vendidos"
           value={stats.tokensSold}
-          hint={`≈ ${sitesEquivalentes.toLocaleString('pt-BR')} sites de ${TOKENS_PER_SITE} tokens`}
+          hint={`≈ ${sitesEquivalentes.toLocaleString('pt-BR')} sites de ${tokenLabel(TOKENS_PER_SITE)}`}
           delay={0.24}
         />
         <StatTile

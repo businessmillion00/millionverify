@@ -1,36 +1,60 @@
-export const TOKENS_PER_SITE = 10;
+/** 1 token = 1 site publicado. */
+export const TOKENS_PER_SITE = 1;
 
-export const TOKEN_PACKAGES = {
-  '100': { tokens: 100, price: 29.9 },
-  '500': { tokens: 500, price: 119.9 },
-  '2000': { tokens: 2000, price: 399.9, popular: true },
-  '5000': { tokens: 5000, price: 799.9 },
-} as const;
+/** Preço unitário em reais. O total é linear: não há desconto por volume. */
+export const TOKEN_UNIT_PRICE = 29;
 
-export type TokenPackageKey = keyof typeof TOKEN_PACKAGES;
-
-/** Preço por token do menor pacote — a régua contra a qual o desconto existe. */
-const BASE_UNIT_PRICE = TOKEN_PACKAGES['100'].price / TOKEN_PACKAGES['100'].tokens;
+/** Quantidades oferecidas como atalho na tela de compra. */
+export const TOKEN_PRESETS = [1, 5, 10, 15] as const;
 
 /**
- * Deriva o desconto do preço real em vez de guardá-lo à parte.
- * Guardado à parte, os dois divergem silenciosamente — era o caso aqui:
- * os valores fixos diziam 8/17/27% quando os preços entregavam 20/33/47%.
+ * Tokens creditados no cadastro. Com 1 token por site, é literalmente um site
+ * de cortesia — o valor antigo (100) daria cem sites grátis por conta criada.
  */
-export function packageEconomics(key: TokenPackageKey) {
-  const { tokens, price } = TOKEN_PACKAGES[key];
-  const unitPrice = price / tokens;
-  const listPrice = tokens * BASE_UNIT_PRICE;
+export const SIGNUP_BONUS_TOKENS = 1;
 
+/** Faixa aceita na compra personalizada. */
+export const TOKEN_MIN_PURCHASE = 1;
+export const TOKEN_MAX_PURCHASE = 100;
+
+/** "1 token" / "3 tokens" — evita o "1 tokens" espalhado pelas telas. */
+export function tokenLabel(quantity: number): string {
+  return `${quantity.toLocaleString('pt-BR')} ${quantity === 1 ? 'token' : 'tokens'}`;
+}
+
+export type TokenOrder = {
+  tokens: number;
+  price: number;
+  unitPrice: number;
+  /** Quantos sites o pedido publica. Com 1 token por site, é o próprio total. */
+  sites: number;
+};
+
+/**
+ * Normaliza uma quantidade vinda de fora (formulário, querystring, API).
+ * Devolve null em vez de corrigir silenciosamente: quantidade inválida é erro
+ * de quem chamou, e arredondar por conta própria esconderia o defeito.
+ */
+export function parseTokenQuantity(value: unknown): number | null {
+  const quantity = typeof value === 'string' ? Number(value.trim()) : value;
+
+  if (typeof quantity !== 'number' || !Number.isInteger(quantity)) return null;
+  if (quantity < TOKEN_MIN_PURCHASE || quantity > TOKEN_MAX_PURCHASE) return null;
+
+  return quantity;
+}
+
+/**
+ * Preço de um pedido. É a ÚNICA fonte do valor cobrado — o cliente manda a
+ * quantidade, nunca o preço, senão bastaria alterar o formulário para pagar
+ * menos do que deve.
+ */
+export function tokenOrder(tokens: number): TokenOrder {
   return {
     tokens,
-    price,
-    unitPrice,
-    listPrice,
-    savings: listPrice - price,
-    discount: 1 - unitPrice / BASE_UNIT_PRICE,
+    price: tokens * TOKEN_UNIT_PRICE,
+    unitPrice: TOKEN_UNIT_PRICE,
     sites: Math.floor(tokens / TOKENS_PER_SITE),
-    popular: 'popular' in TOKEN_PACKAGES[key],
   };
 }
 

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
 import { Reveal } from '@/components/ui/reveal';
 import { PageHeader } from '@/components/dashboard/page-header';
@@ -154,7 +154,7 @@ export default async function TokensPage() {
       <PageHeader
         eyebrow="Tokens"
         title="Extrato de tokens"
-        description={`Cada site publicado consome ${TOKENS_PER_SITE} tokens. Sem mensalidade — os tokens não expiram.`}
+        description={`Cada site publicado consome ${tokenLabel(TOKENS_PER_SITE)}. Sem mensalidade — os tokens não expiram.`}
       >
         <Link href="/dashboard/billing" className="btn-primary">
           Comprar tokens

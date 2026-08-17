@@ -4,7 +4,7 @@ import type { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { formatCNPJ } from '@/lib/utils';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { siteHost, siteUrl } from '@/lib/subdomain';
 import {
   deleteSiteForm,
@@ -319,8 +319,8 @@ export default async function SiteManagePage({ params, searchParams }: Props) {
 
         <h2 className="text-xl font-semibold text-red-400">Excluir site</h2>
         <p className="mt-2 max-w-3xl text-sm text-dark-400">
-          O site sai do ar na hora e some do painel. Os {TOKENS_PER_SITE} tokens da
-          criação não são devolvidos e o subdomínio{' '}
+          O site sai do ar na hora e some do painel. {tokenLabel(TOKENS_PER_SITE)} da
+          criação não {TOKENS_PER_SITE === 1 ? 'é devolvido' : 'são devolvidos'} e o subdomínio{' '}
           <span className="text-white">{site.subdomain}</span> continua reservado — não
           poderá ser reutilizado, nem por você.
         </p>

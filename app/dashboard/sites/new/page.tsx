@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { Wizard } from '@/components/site-builder/wizard';
 
 export const dynamic = 'force-dynamic';
@@ -42,7 +42,7 @@ export default async function NewSitePage() {
           <p className="mt-1 text-sm text-dark-400">
             Três passos: CNPJ, identidade e revisão. A publicação custa{' '}
             <span className="text-gradient font-medium tabular-nums">
-              {TOKENS_PER_SITE} tokens
+              {tokenLabel(TOKENS_PER_SITE)}
             </span>
             .
           </p>
@@ -81,7 +81,7 @@ export default async function NewSitePage() {
             Faltam tokens para publicar um site
           </h2>
           <p className="mt-2 text-sm text-dark-400">
-            Cada site custa {TOKENS_PER_SITE} tokens e o seu saldo é de{' '}
+            Cada site custa {tokenLabel(TOKENS_PER_SITE)} e o seu saldo é de{' '}
             <span className="tabular-nums">
               {user.tokenBalance.toLocaleString('pt-BR')}
             </span>

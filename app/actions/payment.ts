@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { asaasService } from '@/services/asaas';
 import { CreatePaymentSchema } from '@/lib/validators/payment';
-import { packageEconomics } from '@/lib/constants';
+import { tokenOrder } from '@/lib/constants';
 import { auth } from '@/lib/auth';
 import { addDays, format } from 'date-fns';
 
@@ -18,11 +18,10 @@ export async function createPayment(input: unknown) {
     // Validação
     const parsed = CreatePaymentSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false, error: 'Pacote inválido' };
+      return { success: false, error: parsed.error.issues[0]?.message ?? 'Quantidade inválida' };
     }
 
-    const { tokensPackage } = parsed.data;
-    const packageInfo = packageEconomics(tokensPackage);
+    const order = tokenOrder(parsed.data.tokens);
 
     // Buscar usuário
     const user = await prisma.user.findUnique({
@@ -41,12 +40,9 @@ export async function createPayment(input: unknown) {
     const payment = await prisma.payment.create({
       data: {
         userId: user.id,
-        amount: packageInfo.price,
-        tokensGranted: packageInfo.tokens,
-        description:
-          packageInfo.discount > 0
-            ? `Compra de ${packageInfo.tokens} tokens (${Math.round(packageInfo.discount * 100)}% de desconto)`
-            : `Compra de ${packageInfo.tokens} tokens`,
+        amount: order.price,
+        tokensGranted: order.tokens,
+        description: `Compra de ${order.tokens} ${order.tokens === 1 ? 'token' : 'tokens'}`,
         status: 'PENDING',
       },
     });
@@ -57,9 +53,9 @@ export async function createPayment(input: unknown) {
 
       const asaasPayment = await asaasService.createPayment({
         customer: user.asaasCustomerId,
-        value: packageInfo.price,
+        value: order.price,
         dueDate: format(dueDate, 'yyyy-MM-dd'),
-        description: `Compra de ${packageInfo.tokens} tokens`,
+        description: `Compra de ${order.tokens} ${order.tokens === 1 ? 'token' : 'tokens'}`,
         externalReference: payment.id,
       });
 
@@ -86,8 +82,8 @@ export async function createPayment(input: unknown) {
           resource: 'payment',
           resourceId: payment.id,
           changes: {
-            tokens: packageInfo.tokens,
-            amount: packageInfo.price,
+            tokens: order.tokens,
+            amount: order.price,
             asaasId: asaasPayment.id,
           },
           status: 'success',
@@ -99,8 +95,8 @@ export async function createPayment(input: unknown) {
         data: {
           paymentId: updatedPayment.id,
           asaasPaymentId: asaasPayment.id,
-          amount: packageInfo.price,
-          tokens: packageInfo.tokens,
+          amount: order.price,
+          tokens: order.tokens,
           pixQrCode: pix.encodedImage,
           pixCopyPaste: pix.payload,
           expiresAt: dueDate.toISOString(),
