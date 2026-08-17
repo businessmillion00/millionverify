@@ -1,0 +1,66 @@
+# Agendamento das rotas de manutenção.
+#
+# Fica aqui, e não em vercel.json, porque o plano Hobby da Vercel só permite
+# cron uma vez por dia — e uma reconciliação diária é inútil como rede de
+# proteção: o cliente pagaria e esperaria até 24h pelos tokens.
+#
+# Configure o segredo em: Settings > Secrets and variables > Actions
+#   CRON_SECRET  — o mesmo valor da variável na Vercel
+#
+# O repositório é público, então os minutos de Actions são gratuitos. O GitHub
+# não garante pontualidade no agendamento e pode atrasar alguns minutos sob
+# carga; para uma rede de proteção isso é aceitável.
+#
+# Ao migrar para o plano Pro da Vercel, este arquivo pode ser trocado por um
+# vercel.json com "crons" — as rotas são as mesmas.
+
+name: Rotinas
+
+on:
+  schedule:
+    # Reconciliação de pagamentos: a rota pede 5–15 min.
+    - cron: '*/10 * * * *'
+    # Reverificação das meta tags: a rota pede 15–60 min.
+    - cron: '*/30 * * * *'
+  # Permite disparar manualmente pela aba Actions, útil para testar.
+  workflow_dispatch:
+
+jobs:
+  reconciliar-pagamentos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reconciliar pagamentos
+        run: |
+          codigo=$(curl -sS -o /tmp/saida -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL || 'https://millionverify-d1lr.vercel.app' }}/api/cron/reconcile-payments")
+
+          echo "HTTP $codigo"
+          cat /tmp/saida
+
+          # Falhar em silêncio anularia o propósito: a rede de proteção precisa
+          # avisar quando ela mesma para de funcionar.
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Reconciliação respondeu $codigo"
+            exit 1
+          fi
+
+  verificar-meta-tags:
+    # Só na volta de 30 min: o GitHub dispara o job em toda expressão agendada,
+    # então sem este filtro a verificação rodaria junto com a de 10 min.
+    if: github.event.schedule != '*/10 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reverificar meta tags
+        run: |
+          codigo=$(curl -sS -o /tmp/saida -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL || 'https://millionverify-d1lr.vercel.app' }}/api/cron/verify-meta-tags")
+
+          echo "HTTP $codigo"
+          cat /tmp/saida
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Verificação respondeu $codigo"
+            exit 1
+          fi
