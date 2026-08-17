@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -30,7 +31,14 @@ export function Nav() {
     >
       <nav className="container-safe flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <span className="h-6 w-6 rounded-md bg-gradient-amber" />
+          <Image
+            src="/logo.png"
+            alt=""
+            width={28}
+            height={28}
+            priority
+            className="h-7 w-7 shrink-0"
+          />
           <span className="text-sm font-semibold tracking-tight">
             Business Million
           </span>

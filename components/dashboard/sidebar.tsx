@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -327,7 +328,13 @@ function SidebarBody({
           className="flex items-center gap-3"
           title={collapsed ? 'Business Million' : undefined}
         >
-          <span className={cn('h-8 w-8 shrink-0 rounded-lg', theme.mark)} />
+          <Image
+            src="/logo.png"
+            alt=""
+            width={32}
+            height={32}
+            className="h-8 w-8 shrink-0"
+          />
           {!collapsed && (
             <span className="flex flex-col leading-none">
               <span className="text-sm font-semibold tracking-tight">

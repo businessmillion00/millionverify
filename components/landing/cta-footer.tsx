@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Reveal } from '@/components/ui/reveal';
 
@@ -28,6 +29,7 @@ export function CtaFooter() {
         <div className="container-safe flex flex-col items-center justify-between gap-6 py-10 sm:flex-row">
           <div className="flex items-center gap-2.5">
             <span className="h-5 w-5 rounded bg-gradient-amber" />
+            <Image src="/logo.png" alt="" width={24} height={24} className="h-6 w-6" />
             <span className="text-sm font-medium">Business Million</span>
           </div>
 
