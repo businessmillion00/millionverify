@@ -19,7 +19,10 @@ export const config = {
    * Lendo no nosso módulo, o valor entra na config e o `config.secret ?? ...`
    * da biblioteca nem consulta o ambiente.
    */
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  // `||` e não `??`: variável definida com valor VAZIO é o caso comum de erro no
+  // painel, e `??` a manteria — resultando no mesmo MissingSecret, só que mais
+  // difícil de enxergar.
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || undefined,
   /*
    * O middleware reescreve hosts de tenant (*.businessmillion.app), então o host
    * da requisição varia. Sem isto o next-auth recusa hosts que não reconhece.

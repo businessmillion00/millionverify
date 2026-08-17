@@ -45,22 +45,28 @@ export async function registerUser(input: unknown) {
       },
     });
 
-    // Tentar criar cliente no Asaas
-    try {
-      const asaasCustomer = await asaasService.createCustomer({
-        name,
-        email,
-        cpfCnpj: '00000000000191', // Placeholder
-      });
+    /*
+     * Sem chave configurada a chamada sai com `access_token` vazio e volta 401,
+     * gastando uma ida à rede em todo cadastro. O cliente no Asaas é criado
+     * depois, quando o usuário for pagar.
+     */
+    if (process.env.ASAAS_API_KEY?.trim()) {
+      try {
+        const asaasCustomer = await asaasService.createCustomer({
+          name,
+          email,
+          cpfCnpj: '00000000000191', // Placeholder
+        });
 
-      // Atualizar user com Asaas ID
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { asaasCustomerId: asaasCustomer.id },
-      });
-    } catch (error) {
-      console.error('Erro ao criar cliente Asaas:', error);
-      // Continuar mesmo se falhar (pode tentar depois)
+        // Atualizar user com Asaas ID
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { asaasCustomerId: asaasCustomer.id },
+        });
+      } catch (error) {
+        console.error('Erro ao criar cliente Asaas:', error);
+        // Continuar mesmo se falhar (pode tentar depois)
+      }
     }
 
     // Registrar auditoria
