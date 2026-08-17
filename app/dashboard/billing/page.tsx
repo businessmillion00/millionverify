@@ -86,7 +86,11 @@ export default async function BillingPage() {
     (payment) => payment.status === 'PENDING' && payment.pixQrCode !== null
   );
 
-  const billingEnabled = user.asaasCustomerId !== null;
+  /*
+   * O cliente no Asaas é criado na primeira compra, então a existência dele não
+   * gateia mais a tela. O que importa é o provedor estar configurado.
+   */
+  const billingEnabled = Boolean(process.env.ASAAS_API_KEY?.trim());
 
   return (
     <>
@@ -125,11 +129,11 @@ export default async function BillingPage() {
 
       {!billingEnabled && (
         <div className="card mt-8">
-          <span className="badge badge-warning">Conta ainda não habilitada</span>
+          <span className="badge badge-warning">Compras indisponíveis</span>
           <p className="mt-3 text-sm text-dark-300">
-            Sua conta ainda não está registrada no provedor de pagamentos, então
-            não é possível gerar uma cobrança PIX agora. Fale com o suporte para
-            concluir o cadastro fiscal (CPF ou CNPJ) e liberar as compras.
+            O provedor de pagamentos não está configurado, então não é possível
+            gerar uma cobrança PIX agora. Tente novamente mais tarde ou fale com
+            o suporte.
           </p>
         </div>
       )}

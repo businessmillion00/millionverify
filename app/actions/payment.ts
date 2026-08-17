@@ -32,8 +32,40 @@ export async function createPayment(input: unknown) {
       return { success: false, error: 'Usuário não encontrado' };
     }
 
-    if (!user.asaasCustomerId) {
-      return { success: false, error: 'Cliente não registrado no Asaas' };
+    /*
+     * Cliente no Asaas criado sob demanda, na primeira compra.
+     *
+     * Antes ele só nascia no cadastro. Quem se registrasse com o provedor fora
+     * do ar — ou antes da chave estar configurada — ficava impedido de comprar
+     * para sempre, sem caminho de recuperação pela interface.
+     */
+    let asaasCustomerId = user.asaasCustomerId;
+
+    if (!asaasCustomerId) {
+      if (!process.env.ASAAS_API_KEY?.trim()) {
+        return { success: false, error: 'Pagamentos indisponíveis no momento.' };
+      }
+
+      try {
+        const customer = await asaasService.createCustomer({
+          name: user.name ?? user.email,
+          email: user.email,
+          cpfCnpj: user.cpfCnpj ?? '00000000000191',
+        });
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { asaasCustomerId: customer.id },
+        });
+
+        asaasCustomerId = customer.id;
+      } catch (error) {
+        console.error('[payment] Falha ao registrar cliente no Asaas:', error);
+        return {
+          success: false,
+          error: 'Não foi possível iniciar a cobrança agora. Tente novamente em instantes.',
+        };
+      }
     }
 
     // Criar pagamento no banco de dados primeiro
@@ -52,7 +84,7 @@ export async function createPayment(input: unknown) {
       const dueDate = addDays(new Date(), 7);
 
       const asaasPayment = await asaasService.createPayment({
-        customer: user.asaasCustomerId,
+        customer: asaasCustomerId,
         value: order.price,
         dueDate: format(dueDate, 'yyyy-MM-dd'),
         description: `Compra de ${order.tokens} ${order.tokens === 1 ? 'token' : 'tokens'}`,
