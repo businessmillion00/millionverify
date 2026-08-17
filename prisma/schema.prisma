@@ -1,0 +1,304 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ USUARIOS E AUTENTICACAO ============
+
+model User {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  emailVerified         DateTime?
+  name                  String?
+  passwordHash          String?
+  role                  UserRole  @default(USER)
+
+  // Dados de perfil
+  cpfCnpj               String?
+  phone                 String?
+  avatar                String?
+
+  // Dados Asaas
+  asaasCustomerId       String?   @unique
+
+  // Tokens e limite
+  tokenBalance          Int       @default(0)
+  monthlyTokenLimit     Int       @default(100)
+
+  // Status
+  isActive              Boolean   @default(true)
+  isVerified            Boolean   @default(false)
+
+  // Timestamps
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  lastLoginAt           DateTime?
+
+  // Relações
+  accounts              Account[]
+  sessions              Session[]
+  sites                 Site[]
+  tokenTransactions     TokenTransaction[]
+  payments              Payment[]
+  auditLogs             AuditLog[]
+  notificationSettings  NotificationSettings?
+  affiliateStats        AffiliateStats?
+
+  @@index([email])
+  @@index([asaasCustomerId])
+  @@index([createdAt])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ============ TOKENS E FATURAMENTO ============
+
+model TokenTransaction {
+  id                String                @id @default(cuid())
+  userId            String
+  user              User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type              TokenTransactionType
+  amount            Int
+  description       String
+
+  // Referência para pagamento associado
+  paymentId         String?
+  payment           Payment?              @relation(fields: [paymentId], references: [id])
+
+  balanceBefore     Int
+  balanceAfter      Int
+
+  metadata          Json?
+  createdAt         DateTime              @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Payment {
+  id                  String            @id @default(cuid())
+  userId              String
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Dados Asaas
+  asaasPaymentId      String?           @unique
+  asaasStatus         String            @default("pending")
+
+  amount              Float
+  tokensGranted       Int
+  description         String
+
+  // Transação PIX
+  pixKey              String?
+  pixQrCode           String?           @db.Text
+  pixExpiresAt        DateTime?
+
+  // Status
+  status              PaymentStatus     @default(PENDING)
+  paidAt              DateTime?
+
+  // Tentativas e logs
+  attemptCount        Int               @default(0)
+  lastAttemptAt       DateTime?
+  errorLog            String?           @db.Text
+
+  // Relações
+  tokenTransactions   TokenTransaction[]
+  metadata            Json?
+
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([asaasPaymentId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+// ============ SITES GERADOS ============
+
+model Site {
+  id                  String    @id @default(cuid())
+  userId              String
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Informações
+  name                String
+  description         String?
+  cnpj                String
+  companyName         String
+
+  // Domínio
+  subdomain           String    @unique
+  customDomain        String?   @unique
+
+  // Contato exibido no site
+  phone               String?
+  email               String?
+
+  // Configurações
+  theme               Json      @default("{\"bgColor\": \"#121212\", \"accentColor\": \"#F59E0B\"}")
+
+  // ── Verificação de domínio no Meta ──
+  // Dois métodos alternativos oferecidos pela Meta:
+  //  metaTag        → injetada no <head> do site (instantâneo)
+  //  verificationTxt→ registro TXT na zona DNS do domínio (5-15 min)
+  // Por isso o TXT NÃO é conferido no HTML: o health check resolve DNS.
+  metaTag             String?   @db.Text
+  metaTagVerified     Boolean   @default(false)
+  metaTagLastCheckedAt DateTime?
+
+  verificationTxt     String?   @db.Text
+  verificationTxtVerified Boolean @default(false)
+  verificationTxtLastCheckedAt DateTime?
+
+  /// Último diagnóstico completo: latência, status HTTP, tags encontradas.
+  lastDiagnostic      Json?
+
+  // ── Provisionamento ──
+  buildStatus         SiteBuildStatus @default(READY)
+  buildStartedAt      DateTime?
+  buildCompletedAt    DateTime?
+  buildError          String?   @db.Text
+
+  // Conteúdo do site + payload bruto da Receita (CNAEs, endereço, capital…)
+  content             Json      @default("{}")
+  registryData        Json?
+
+  // Comprovante oficial que o próprio usuário baixou da Receita e subiu aqui.
+  cnpjDocumentUrl     String?
+  cnpjDocumentAt      DateTime?
+
+  // Status
+  isPublished         Boolean   @default(true)
+  isDeleted           Boolean   @default(false)
+
+  // Analytics
+  viewsCount          Int       @default(0)
+  lastViewedAt        DateTime?
+
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  @@unique([userId, subdomain])
+  @@index([userId])
+  @@index([subdomain])
+  @@index([createdAt])
+}
+
+// ============ AUDITORIA ============
+
+model AuditLog {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  action        String
+  resource      String
+  resourceId    String
+
+  changes       Json?
+  ipAddress     String?
+  userAgent     String?
+
+  status        String   @default("success")
+  errorMessage  String?
+
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============ NOTIFICACOES ============
+
+model NotificationSettings {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emailOnPayment    Boolean  @default(true)
+  emailOnSiteUpdate Boolean  @default(true)
+  emailNewsletter   Boolean  @default(false)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ============ PROGRAMA DE AFILIADOS ============
+
+model AffiliateStats {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  referralCode      String   @unique
+  totalReferrals    Int      @default(0)
+  totalEarnings     Float    @default(0)
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ============ ENUMS ============
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum TokenTransactionType {
+  PURCHASE
+  REFUND
+  BONUS
+  USAGE
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REFUNDED
+}
+
+enum SiteBuildStatus {
+  QUEUED
+  BUILDING
+  READY
+  FAILED
+}

@@ -1,0 +1,208 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* `scroll-behavior: smooth` briga com o Lenis — os dois disputam o scroll.
+   O Lenis já entrega a suavidade; aqui só garantimos o fallback quando ele
+   está desligado (prefers-reduced-motion). */
+html:not(.lenis) {
+  scroll-behavior: smooth;
+}
+
+/* Recomendado pelo Lenis para evitar reflow durante a interpolação. */
+html.lenis body {
+  min-height: 100%;
+}
+
+body {
+  @apply text-white font-sans;
+  background-color: #121212;
+  background-image: linear-gradient(135deg, #121212 0%, #1a1a1a 100%);
+}
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #D97706 0%, #B45309 100%);
+}
+
+/* ============ GLASSMORPHISM ============ */
+.glass {
+  @apply backdrop-blur-md bg-white/5 border border-white/10 rounded-lg;
+}
+
+.glass-sm {
+  @apply backdrop-blur-sm bg-white/5 border border-white/10 rounded-lg;
+}
+
+/* ============ GRADIENTES ============ */
+.gradient-amber {
+  @apply bg-gradient-to-r from-amber-500 to-amber-600;
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============ BOTÕES ============ */
+.btn {
+  @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 ease-out;
+}
+
+.btn-primary {
+  @apply btn bg-gradient-amber hover:shadow-amber-glow text-dark-950 hover:scale-105;
+}
+
+.btn-secondary {
+  @apply btn glass hover:bg-white/10 text-white;
+}
+
+.btn-ghost {
+  @apply btn text-white hover:bg-white/10;
+}
+
+/* ============ ANIMAÇÕES ============ */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.5s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* ============ UTILITY ============ */
+.container-safe {
+  @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============ FORMS ============ */
+input,
+textarea,
+select {
+  @apply bg-dark-800/50 border border-dark-700 rounded-lg px-4 py-2 text-white placeholder-dark-500 focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-colors;
+}
+
+input:disabled,
+textarea:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* ============ BADGES ============ */
+.badge {
+  @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-success {
+  @apply bg-green-500/20 text-green-400;
+}
+
+.badge-error {
+  @apply bg-red-500/20 text-red-400;
+}
+
+.badge-warning {
+  @apply bg-yellow-500/20 text-yellow-400;
+}
+
+.badge-info {
+  @apply bg-blue-500/20 text-blue-400;
+}
+
+.badge-amber {
+  @apply bg-amber-500/20 text-amber-400;
+}
+
+/* ============ CARDS ============ */
+.card {
+  @apply glass p-6 rounded-xl border border-dark-700;
+}
+
+.card-hover {
+  @apply card hover:border-amber-500/50 hover:shadow-amber-glow transition-all duration-300;
+}
+
+/* ============ DIVIDERS ============ */
+.divider {
+  @apply border-t border-dark-700;
+}
+
+/* ============ SELEÇÃO ============ */
+::selection {
+  background: rgba(245, 158, 11, 0.3);
+  color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

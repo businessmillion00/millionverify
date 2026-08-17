@@ -1,0 +1,23 @@
+node_modules/
+.next/
+out/
+build/
+
+.env
+.env*.local
+
+# Comprovantes de CNPJ enviados pelos usuários (UPLOAD_DIR). São documentos de
+# empresas reais — nunca versionar.
+uploads/
+
+# Cópias de trabalho deixadas para trás
+*.bak
+
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-error.log*
+
+.vercel
+next-env.d.ts
+tsconfig.tsbuildinfo

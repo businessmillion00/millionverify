@@ -1,0 +1,24 @@
+// ALTERAR a chamada do CnpjDocumentCard (linhas ~154-161) para incluir `siteId`:
+//
+// ANTES:
+//   <CnpjDocumentCard
+//     cnpj={site.cnpj}
+//     companyName={site.companyName}
+//     documentUrl={site.cnpjDocumentUrl}
+//     documentAtLabel={label(site.cnpjDocumentAt)}
+//     uploadUrl={`/api/sites/${site.id}/cnpj-document`}
+//     className="mt-6"
+//   />
+//
+// DEPOIS:
+//   <CnpjDocumentCard
+//     siteId={site.id}
+//     cnpj={site.cnpj}
+//     companyName={site.companyName}
+//     documentUrl={site.cnpjDocumentUrl}
+//     documentAtLabel={label(site.cnpjDocumentAt)}
+//     className="mt-6"
+//   />
+//
+// Nota: `uploadUrl` não é mais necessária como prop — o componente agora
+// deriva a URL internamente a partir de `siteId`.
