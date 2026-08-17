@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/utils/auth-utils';
 import { RegisterSchema } from '@/lib/validators/auth';
 import { rateLimit } from '@/lib/utils/rate-limit';
-import { SIGNUP_BONUS_TOKENS } from '@/lib/constants';
+import { SIGNUP_BONUS_TOKENS, tokenLabel } from '@/lib/constants';
 import { asaasService } from '@/services/asaas';
 
 export async function registerUser(input: unknown) {
@@ -83,7 +83,10 @@ export async function registerUser(input: unknown) {
 
     return {
       success: true,
-      message: `Registro realizado com sucesso. Você já ganha ${SIGNUP_BONUS_TOKENS === 1 ? 'um site' : `${SIGNUP_BONUS_TOKENS} sites`} de cortesia!`
+      message:
+        SIGNUP_BONUS_TOKENS > 0
+          ? `Registro realizado com sucesso. Você já ganha ${tokenLabel(SIGNUP_BONUS_TOKENS)} de cortesia!`
+          : 'Registro realizado com sucesso.',
     };
   } catch (error) {
     console.error('Erro ao registrar usuário:', error);

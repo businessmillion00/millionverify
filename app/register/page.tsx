@@ -8,7 +8,7 @@ export default function RegisterPage() {
         Criar <span className="text-gradient">conta</span>
       </h1>
       <p className="mt-2 text-sm text-dark-400">
-        Ganhe 100 tokens de bônus no cadastro.
+        Um token publica um site. Sem mensalidade.
       </p>
 
       <div className="card mt-10 w-full max-w-md">

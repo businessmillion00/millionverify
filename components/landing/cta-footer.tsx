@@ -16,7 +16,7 @@ export function CtaFooter() {
             <span className="text-gradient">antes do café esfriar</span>
           </h2>
           <p className="mx-auto mt-6 max-w-lg text-lg text-dark-400">
-            Cadastre-se, ganhe 100 tokens e publique o primeiro site agora.
+            Cadastre-se, compre um token por R$ 29 e publique o primeiro site agora.
           </p>
           <Link href="/register" className="btn-primary mt-10 inline-flex text-lg">
             Criar conta grátis

@@ -8,10 +8,11 @@ export const TOKEN_UNIT_PRICE = 29;
 export const TOKEN_PRESETS = [1, 5, 10, 15] as const;
 
 /**
- * Tokens creditados no cadastro. Com 1 token por site, é literalmente um site
- * de cortesia — o valor antigo (100) daria cem sites grátis por conta criada.
+ * Tokens creditados no cadastro. Zero: a conta nasce sem saldo e o usuário
+ * compra o primeiro token para publicar. Trocar para um número positivo volta a
+ * dar cortesia, sem mexer em mais nada.
  */
-export const SIGNUP_BONUS_TOKENS = 1;
+export const SIGNUP_BONUS_TOKENS = 0;
 
 /** Faixa aceita na compra personalizada. */
 export const TOKEN_MIN_PURCHASE = 1;

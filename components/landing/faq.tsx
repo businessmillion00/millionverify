@@ -19,7 +19,7 @@ const ITEMS = [
   },
   {
     q: 'Como funcionam os tokens?',
-    a: 'Cada site publicado consome 10 tokens. Você compra pacotes via PIX e o crédito entra automaticamente quando o pagamento é confirmado. No cadastro você já ganha 100 tokens.',
+    a: 'Um token publica um site, e cada token custa R$ 29. Você compra via PIX — de 1 a 15 tokens nos atalhos, ou a quantidade que quiser — e o crédito entra automaticamente quando o pagamento é confirmado. Os tokens não expiram.',
   },
   {
     q: 'Posso usar meu próprio domínio?',
