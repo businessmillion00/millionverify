@@ -15,6 +15,7 @@
  */
 
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import type { Color, PDFFont, PDFImage, PDFPage } from 'pdf-lib';
 import path from 'node:path';
 import fs from 'node:fs';
 
@@ -56,10 +57,6 @@ const OUTER_X1 = 531.0;
 const OUTER_Y0 = 48.75; // topo (pdf-lib y cresce para cima; usamos y "de cima")
 const OUTER_Y1 = 563.25; // base
 
-/* ── Grid interno ── */
-const GRID_X0 = 56.25;
-const GRID_X1 = 523.5;
-
 /* ── Fontes (original: Liberation Sans — mapeamos para Helvetica que é métrica idêntica) ── */
 const F_TITULO1 = 13.5;   // REPÚBLICA FEDERATIVA DO BRASIL (bold)
 const F_TITULO2 = 12.0;   // CADASTRO NACIONAL DA PESSOA JURÍDICA (bold)
@@ -100,12 +97,12 @@ function yBaseline(yMinTopDown: number, fontSize: number): number {
 
 /** Desenha um retângulo (borda de célula) com 0.75pt como o original. */
 function drawRect(
-    page: any,
+    page: PDFPage,
     x0: number,
     y0Bottom: number,
     x1: number,
     y1Top: number,
-    color: any,
+    color: Color,
 ) {
     page.drawRectangle({
         x: x0,
@@ -119,7 +116,7 @@ function drawRect(
 }
 
 /** Desenha linha horizontal. */
-function drawHLine(page: any, y: number, x0: number, x1: number, color: any, thickness = 0.75) {
+function drawHLine(page: PDFPage, y: number, x0: number, x1: number, color: Color, thickness = 0.75) {
     page.drawLine({
         start: { x: x0, y },
         end: { x: x1, y },
@@ -129,7 +126,7 @@ function drawHLine(page: any, y: number, x0: number, x1: number, color: any, thi
 }
 
 /** Desenha linha vertical. */
-function drawVLine(page: any, x: number, y0: number, y1: number, color: any, thickness = 0.75) {
+function drawVLine(page: PDFPage, x: number, y0: number, y1: number, color: Color, thickness = 0.75) {
     page.drawLine({
         start: { x, y: y0 },
         end: { x, y: y1 },
@@ -142,9 +139,9 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
     const pdfDoc = await PDFDocument.create();
 
     // Liberation Sans: mesma fonte do PDF oficial da Receita Federal
-    let fontBold: any;
-    let font: any;
-    let fontItalic: any;
+    let fontBold: PDFFont;
+    let font: PDFFont;
+    let fontItalic: PDFFont;
     try {
         const libDir = path.dirname(new URL(import.meta.url).pathname);
         fontBold = await pdfDoc.embedFont(fs.readFileSync(path.join(libDir, 'LiberationSans-Bold.ttf')));
@@ -173,7 +170,7 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
     const maxWpre = 523.5 - TX_PRE;
     const startVyPre = 271.76;
 
-    function buildLinesPre(size: number, gap: number): string[][] {
+    function buildLinesPre(size: number): string[][] {
         const all: string[][] = [];
         if (!data.secondaryCnaes || data.secondaryCnaes.length === 0) return all;
         for (const cnae of data.secondaryCnaes) {
@@ -201,7 +198,7 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
     let cnaeOffset = 0;
 
     for (const [s, g] of SIZES_PRE) {
-        const lines = buildLinesPre(s, g);
+        const lines = buildLinesPre(s);
         const count = lines.reduce((acc, l) => acc + l.length, 0);
         if (count === 0) break;
         const needed = (count - 1) * g + 1.117 * s; // altura total do texto
@@ -218,7 +215,7 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
     // ══════════════════════════════════════════════════════════════════
     // BRASÃO (posição exata do original: x 58.5..103.5, y topo 67.5..112.5)
     // ══════════════════════════════════════════════════════════════════
-    let brasaoImage: any = null;
+    let brasaoImage: PDFImage | null = null;
     try {
         // Import.meta.url funciona no Next.js bundler (lib dir). Fallback para cwd.
         let brasaoPath = '';
@@ -376,10 +373,6 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
         page.drawText(text, { x, y: yBaseline(yMinTop, F_LABEL), size: F_LABEL, font: fontBold, color: BLACK });
     }
 
-    function valueAtSized(yMinTop: number, x: number, text: string, size: number) {
-        page.drawText(text, { x, y: yBaseline(yMinTop, size), size, font: fontBold, color: BLACK });
-    }
-
     // ── 1ª linha: NÚMERO DE INSCRIÇÃO | COMPROVANTE | DATA DE ABERTURA ──
     // Rótulos yMin=134.07
     label(134.07, 'NÚMERO DE INSCRIÇÃO');
@@ -459,7 +452,7 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
     const startVy = 271.76;
 
     // Monta todas as linhas completas (com wrap) para um tamanho de fonte
-    function buildLines(size: number, gap: number): string[][] {
+    function buildLines(size: number): string[][] {
         const all: string[][] = [];
         if (!data.secondaryCnaes || data.secondaryCnaes.length === 0) return all;
         for (const cnae of data.secondaryCnaes) {
@@ -483,7 +476,7 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
     // Monta as linhas com a fonte/gap escolhidos para desenhar.
     let allLines: string[][] = [];
     if (data.secondaryCnaes && data.secondaryCnaes.length > 0) {
-        allLines = buildLines(chosenSizePre, chosenGapPre);
+        allLines = buildLines(chosenSizePre);
     }
 
     // ── CNAES SECUNDÁRIOS: desenha com a fonte/gap escolhidos ──
@@ -591,7 +584,6 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
         x: 49.5, y: yBaseline(649.67 + cnaeOffset, F_FOOTER), size: F_FOOTER, font: font, color: BLACK,
     });
     // datas em negrito sobrepostas
-    const dateIdx = emitidoText.indexOf(dateStr);
     const dayW = font.widthOfTextAtSize(`Emitido no dia `, F_FOOTER);
     page.drawText(dateStr, {
         x: 49.5 + dayW,
@@ -632,40 +624,71 @@ export async function generateCnpjCartao(data: CnpjCartaoData): Promise<Uint8Arr
  * Converte registryData (JSON da BrasilAPI) em CnpjCartaoData.
  * Preserva códigos e descrições separados para o formato oficial.
  */
-export function registryDataToCartao(registryData: any): CnpjCartaoData {
-    const natureCode = registryData.natureza_juridica?.codigo ?? registryData.natureza_juridica;
-    const natureDesc = registryData.natureza_juridica?.descricao ?? '';
+/**
+ * Payload cru da BrasilAPI. Os valores chegam como string, número, objeto ou
+ * simplesmente ausentes conforme a empresa — daí `unknown` em vez de `any`:
+ * força a leitura a passar pelos conversores abaixo.
+ */
+type RegistryPayload = Record<string, unknown>;
+
+/** Valor escalar do payload → string; qualquer outra coisa vira ''. */
+function txt(value: unknown): string {
+    if (typeof value === 'string') return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+    return '';
+}
+
+/** Campos que a Receita ora manda como texto, ora como { codigo, descricao }. */
+function field(value: unknown, key: 'codigo' | 'descricao'): string {
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        return txt((value as Record<string, unknown>)[key]);
+    }
+    return key === 'codigo' ? txt(value) : '';
+}
+
+export function registryDataToCartao(registryData: RegistryPayload): CnpjCartaoData {
+    const natureCode = field(registryData.natureza_juridica, 'codigo');
+    const natureDesc = field(registryData.natureza_juridica, 'descricao');
     const legalNature = natureCode && natureDesc ? `${natureCode} - ${natureDesc}` : '';
 
+    const secundarios = Array.isArray(registryData.cnaes_secundarios)
+        ? registryData.cnaes_secundarios
+        : [];
+
+    const capital = Number(txt(registryData.capital_social));
+
     return {
-        cnpj: registryData.cnpj ?? '',
-        companyName: registryData.razao_social ?? '',
-        tradeName: registryData.nome_fantasia ?? '',
+        cnpj: txt(registryData.cnpj),
+        companyName: txt(registryData.razao_social),
+        tradeName: txt(registryData.nome_fantasia),
         legalNature,
-        openingDate: registryData.data_inicio_atividade ?? '',
-        situation: registryData.descricao_situacao_cadastral ?? '',
-        situationDate: registryData.data_situacao_cadastral ?? '',
-        situationReason: registryData.motivo_situacao_cadastral?.descricao ?? registryData.motivo_situacao_cadastral ?? '',
-        cnaeCode: registryData.cnae_fiscal ?? '',
-        cnaeDescription: registryData.cnae_fiscal_descricao ?? '',
-        secondaryCnaes: (registryData.cnaes_secundarios ?? []).map(
-            (c: any) => `${c.codigo ?? ''} - ${c.descricao ?? ''}`,
-        ),
+        openingDate: txt(registryData.data_inicio_atividade),
+        situation: txt(registryData.descricao_situacao_cadastral),
+        situationDate: txt(registryData.data_situacao_cadastral),
+        situationReason:
+            field(registryData.motivo_situacao_cadastral, 'descricao') ||
+            txt(registryData.motivo_situacao_cadastral),
+        cnaeCode: txt(registryData.cnae_fiscal),
+        cnaeDescription: txt(registryData.cnae_fiscal_descricao),
+        secondaryCnaes: secundarios.map((item) => {
+            const entry = (typeof item === 'object' && item !== null ? item : {}) as Record<string, unknown>;
+            return `${txt(entry.codigo)} - ${txt(entry.descricao)}`;
+        }),
         address: {
-            street: registryData.logradouro ?? '',
-            number: registryData.numero ?? '',
-            complement: registryData.complemento ?? '',
-            neighborhood: registryData.bairro ?? '',
-            city: registryData.municipio ?? '',
-            state: registryData.uf ?? '',
-            zipCode: registryData.cep ?? '',
+            street: txt(registryData.logradouro),
+            number: txt(registryData.numero),
+            complement: txt(registryData.complemento),
+            neighborhood: txt(registryData.bairro),
+            city: txt(registryData.municipio),
+            state: txt(registryData.uf),
+            zipCode: txt(registryData.cep),
         },
-        phone: registryData.ddd_telefone_1 ?? registryData.ddd_telefone_2 ?? '',
-        email: registryData.email ?? '',
-        capital: registryData.capital_social
-            ? `R$ ${Number(registryData.capital_social).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        phone: txt(registryData.ddd_telefone_1) || txt(registryData.ddd_telefone_2),
+        email: txt(registryData.email),
+        capital: Number.isFinite(capital) && capital > 0
+            ? `R$ ${capital.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
             : '',
-        porte: registryData.porte ?? '',
+        porte: txt(registryData.porte),
         isMatrix: registryData.identificador_matriz_filial === 1,
     };
 }
@@ -718,7 +741,7 @@ function formatCnaeCode(code: string | undefined): string {
  * Quebra um texto em linhas que cabem dentro da largura máxima (wrap),
  * sempre em fronteiras de palavra.
  */
-function wrapText(font: any, text: string, size: number, maxW: number): string[] {
+function wrapText(font: PDFFont, text: string, size: number, maxW: number): string[] {
     const words = text.split(/\s+/);
     const lines: string[] = [];
     let current = '';

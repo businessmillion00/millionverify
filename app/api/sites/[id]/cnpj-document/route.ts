@@ -212,7 +212,7 @@ async function handleGenerate(request: NextRequest, context: Context): Promise<N
 
     // Se já existe um PDF anexado manualmente, entregar esse (precedência)
     if (site.cnpjDocumentUrl) {
-      return deliverStoredDocument(site.id, session.user.id, site.cnpj);
+      return deliverStoredDocument(site.id, session.user.id);
     }
 
     // Gerar o Cartão CNPJ localmente com pdf-lib
@@ -320,7 +320,7 @@ export async function GET(request: NextRequest, context: Context) {
 
     // Se existe PDF anexado manualmente, entregar
     if (site.cnpjDocumentUrl) {
-      return deliverStoredDocument(site.id, session.user.id, site.cnpj);
+      return deliverStoredDocument(site.id, session.user.id);
     }
 
     // Se não existe, gerar automaticamente
@@ -438,11 +438,7 @@ async function findOwnedSite(siteId: string, userId: string) {
 }
 
 /** Entrega o PDF previamente armazenado pelo usuário. */
-async function deliverStoredDocument(
-  siteId: string,
-  userId: string,
-  cnpj: string,
-): Promise<NextResponse> {
+async function deliverStoredDocument(siteId: string, userId: string): Promise<NextResponse> {
   const rateLimitResult = await rateLimit(
     `site-cnpj-document-read:${userId}`,
     DOWNLOAD_LIMIT,
