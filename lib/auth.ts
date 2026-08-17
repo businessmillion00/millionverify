@@ -7,6 +7,24 @@ import { verifyPassword } from '@/lib/utils/auth-utils';
 
 export const config = {
   adapter: PrismaAdapter(prisma),
+  /*
+   * Segredo lido AQUI, e não deixado por conta do next-auth.
+   *
+   * O `setEnvDefaults` da biblioteca faz `process.env.AUTH_SECRET ?? NEXTAUTH_SECRET`,
+   * mas esse código roda de dentro do node_modules — e o Next.js só garante a
+   * substituição de `process.env.X` no código da aplicação. Em produção na Vercel
+   * a variável existia no painel e ainda assim a biblioteca via `undefined`,
+   * derrubando toda requisição com MissingSecret (middleware e function).
+   *
+   * Lendo no nosso módulo, o valor entra na config e o `config.secret ?? ...`
+   * da biblioteca nem consulta o ambiente.
+   */
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  /*
+   * O middleware reescreve hosts de tenant (*.businessmillion.app), então o host
+   * da requisição varia. Sem isto o next-auth recusa hosts que não reconhece.
+   */
+  trustHost: true,
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 }, // 30 dias
   pages: {
     signIn: '/login',
