@@ -33,6 +33,8 @@ export const RESERVED_SUBDOMAINS: ReadonlySet<string> = new Set([
   'billing',
   'blog',
   'businessmillion',
+  'millionverify',
+  'million-verify',
   'cdn',
   'checkout',
   'cliente',

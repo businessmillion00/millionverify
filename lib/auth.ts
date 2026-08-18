@@ -24,7 +24,7 @@ export const config = {
   // difícil de enxergar.
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || undefined,
   /*
-   * O middleware reescreve hosts de tenant (*.businessmillion.app), então o host
+   * O middleware reescreve hosts de tenant (*.million-verify.com), então o host
    * da requisição varia. Sem isto o next-auth recusa hosts que não reconhece.
    */
   trustHost: true,

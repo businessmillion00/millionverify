@@ -234,7 +234,7 @@ interface TxtTransition {
  * Lembrete que já custou retrabalho neste projeto: o TXT NÃO fica no HTML do site, ele é
  * uma entrada na ZONA DNS — quem resolve isso é `lookupTxt` (lib/verification/dns.ts),
  * chamado lá dentro de `diagnoseSite`. E o método só existe para quem tem domínio próprio:
- * na zona de `*.businessmillion.app` o cliente não consegue criar registro nenhum, então o
+ * na zona de `*.million-verify.com` o cliente não consegue criar registro nenhum, então o
  * diagnóstico devolve `applicable: false` e não há transição alguma a contabilizar.
  */
 function txtTransition(site: MonitoredSite, diagnostic: SiteDiagnostic): TxtTransition {

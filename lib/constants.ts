@@ -86,5 +86,5 @@ export const APP_CONFIG = {
    * produção, staging e um domínio novo sem varredura no repositório — o valor
    * estava cravado em quinze lugares.
    */
-  SUBDOMAIN_SUFFIX: process.env.NEXT_PUBLIC_SUBDOMAIN_SUFFIX || '.businessmillion.app',
+  SUBDOMAIN_SUFFIX: process.env.NEXT_PUBLIC_SUBDOMAIN_SUFFIX || '.million-verify.com',
 } as const;

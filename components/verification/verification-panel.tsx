@@ -12,7 +12,7 @@ import { BM_DOMAINS_URL } from '@/components/verification/tutorial-steps';
  *
  * META TAG  → vai no <head> do site que nós servimos. Vale na hora.
  * REGISTRO TXT → entrada na ZONA DNS do domínio. NÃO vai no HTML e só existe
- *   para quem apontou um domínio próprio: a zona de {subdomínio}.businessmillion.app
+ *   para quem apontou um domínio próprio: a zona de {subdomínio}.million-verify.com
  *   é nossa, o cliente não tem onde criar o registro. Por isso o bloco fica
  *   desabilitado (com o motivo escrito) enquanto não houver domínio próprio.
  */

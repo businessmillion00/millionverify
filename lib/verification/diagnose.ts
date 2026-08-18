@@ -72,7 +72,7 @@ export interface TxtDiagnostic {
   records: string[];
   outcome: DiagnosticOutcome;
   /**
-   * Falso para subdomínio da plataforma: a zona `businessmillion.app` é NOSSA e o
+   * Falso para subdomínio da plataforma: a zona `million-verify.com` é NOSSA e o
    * cliente não consegue criar TXT nela. Só faz sentido com domínio próprio.
    */
   applicable: boolean;

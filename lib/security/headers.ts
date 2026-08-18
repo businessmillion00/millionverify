@@ -69,7 +69,7 @@ export function buildContentSecurityPolicy(options: CspOptions = {}): string {
 /**
  * Objeto reutilizável. Congelado para ninguém mutar o cabeçalho global sem querer.
  * Cross-Origin-Resource-Policy é 'same-site' (e não 'same-origin') porque os sites dos
- * clientes rodam em subdomínios de businessmillion.app e carregam os assets de /_next.
+ * clientes rodam em subdomínios de million-verify.com e carregam os assets de /_next.
  */
 export const SECURITY_HEADERS: Readonly<Record<string, string>> = Object.freeze({
   'Content-Security-Policy': buildContentSecurityPolicy(),

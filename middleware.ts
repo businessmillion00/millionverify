@@ -18,8 +18,8 @@ function hostOf(value: string | undefined): string | null {
  */
 const ROOT_HOSTS = new Set(
   [
-    'businessmillion.app',
-    'www.businessmillion.app',
+    'million-verify.com',
+    'www.million-verify.com',
     'localhost:3000',
     hostOf(process.env.NEXT_PUBLIC_APP_URL),
     // Domínio estável de produção na Vercel (millionverify-d1lr.vercel.app).

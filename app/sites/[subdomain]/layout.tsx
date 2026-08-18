@@ -108,7 +108,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   return {
     // Canônico sempre no host público, mesmo quando a página é servida em
-    // businessmillion.app/sites/{sub} — evita conteúdo duplicado.
+    // million-verify.com/sites/{sub} — evita conteúdo duplicado.
     ...(publicUrl ? { metadataBase: publicUrl } : {}),
     title: { default: site.companyName, template: `%s · ${site.companyName}` },
     description,
