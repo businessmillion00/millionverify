@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { APP_CONFIG } from '@/lib/constants';
 import { formatCNPJ, slugify } from '@/lib/utils';
 
 type CnpjResult = {
@@ -152,7 +153,8 @@ export function CnpjSimulator() {
               Subdomínio reservado
             </p>
             <p className="text-gradient mt-1 text-lg font-medium">
-              {slugify(result.name).slice(0, 40)}.businessmillion.app
+              {slugify(result.name).slice(0, 40)}
+              {APP_CONFIG.SUBDOMAIN_SUFFIX}
             </p>
 
             <a href="/register" className="btn-primary mt-6 inline-flex">

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { APP_CONFIG } from '@/lib/constants';
 import { formatCNPJ } from '@/lib/utils';
 import {
   addressLines,
@@ -18,9 +19,11 @@ export const PRIVACY_POLICY_PATH = '/politica-de-privacidade';
  * a reescrita não acontece e o site é servido literalmente em /sites/{sub}.
  * Divergir desta lista faz o link do rodapé cair em 404 em desenvolvimento.
  */
+const PLATFORM_DOMAIN = APP_CONFIG.SUBDOMAIN_SUFFIX.replace(/^\./, '');
+
 const ROOT_HOSTS: ReadonlySet<string> = new Set([
-  'businessmillion.app',
-  'www.businessmillion.app',
+  PLATFORM_DOMAIN,
+  `www.${PLATFORM_DOMAIN}`,
   'localhost:3000',
 ]);
 

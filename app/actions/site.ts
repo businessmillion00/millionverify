@@ -5,7 +5,7 @@ import { CreateSiteSchema } from '@/lib/validators/site';
 import { auth } from '@/lib/auth';
 import { brasilAPIService } from '@/services/brasil-api';
 import { enqueueSiteBuild } from '@/lib/site/provision';
-import { TOKENS_PER_SITE } from '@/lib/constants';
+import { APP_CONFIG, TOKENS_PER_SITE } from '@/lib/constants';
 
 /*
  * Cobrança da criação. Vem da constante compartilhada: um valor próprio aqui
@@ -165,7 +165,7 @@ export async function createSite(input: unknown) {
         id: result.id,
         name: result.name,
         subdomain: result.subdomain,
-        url: `https://${result.subdomain}.businessmillion.app`,
+        url: `https://${result.subdomain}${APP_CONFIG.SUBDOMAIN_SUFFIX}`,
       },
     };
   } catch (error) {

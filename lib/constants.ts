@@ -81,5 +81,10 @@ export const APP_CONFIG = {
   NAME: 'Business Million',
   DESCRIPTION: 'Verificador de Business Managers e Gerador de Sites',
   DOMAIN: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  SUBDOMAIN_SUFFIX: '.businessmillion.app',
+  /*
+   * Domínio dos sites de cliente. Vem do ambiente para o mesmo código servir
+   * produção, staging e um domínio novo sem varredura no repositório — o valor
+   * estava cravado em quinze lugares.
+   */
+  SUBDOMAIN_SUFFIX: process.env.NEXT_PUBLIC_SUBDOMAIN_SUFFIX || '.businessmillion.app',
 } as const;
