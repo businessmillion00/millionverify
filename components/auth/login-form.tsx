@@ -11,6 +11,13 @@ export function LoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  /*
+   * Estado próprio para a navegação. O `loading` sozinho não bastava: o
+   * `finally` o desligava assim que signIn retornava, mas o /dashboard ainda
+   * levava segundos para renderizar no servidor. Nesse intervalo o botão
+   * voltava a dizer "Entrar" e a tela parecia travada.
+   */
+  const [entrando, setEntrando] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +29,7 @@ export function LoginForm() {
 
       if (!parsed.success) {
         setError('Email ou senha inválidos');
+        setLoading(false);
         return;
       }
 
@@ -33,17 +41,36 @@ export function LoginForm() {
 
       if (result?.error) {
         setError('Email ou senha incorretos');
+        setLoading(false);
         return;
       }
 
+      // Sem desligar o loading: a partir daqui a tela é a de transição, que só
+      // sai quando o painel terminar de renderizar.
+      setEntrando(true);
       router.push('/dashboard');
       router.refresh();
-    } catch (err) {
+      return;
+    } catch {
       setError('Erro ao fazer login');
-    } finally {
-      setLoading(false);
     }
+
+    setLoading(false);
   };
+
+  if (entrando) {
+    return (
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex w-full max-w-md flex-col items-center gap-4 py-12"
+      >
+        <span className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500/30 border-t-amber-400" />
+        <p className="text-sm text-dark-300">Carregando seu painel…</p>
+        <p className="text-xs text-dark-500">Buscando seus sites e o saldo de tokens.</p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-md space-y-4">

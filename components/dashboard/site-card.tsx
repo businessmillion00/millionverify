@@ -12,6 +12,7 @@ import { APP_CONFIG } from '@/lib/constants';
 
 type Props = {
   /** Campos exatamente como vêm do select de getSitesByUser(). */
+  siteId: string;
   name: string;
   subdomain: string;
   companyName: string;
@@ -20,11 +21,18 @@ type Props = {
   metaTagVerified: boolean;
   /** Rótulo relativo pronto do servidor — formatar no cliente divergiria na hidratação. */
   createdAtLabel: string;
+  /**
+   * Site novo o suficiente para o certificado do subdomínio ainda estar sendo
+   * emitido. Decidido no servidor: comparar datas no cliente divergiria na
+   * hidratação.
+   */
+  verificarEndereco: boolean;
 };
 
 type CopyState = 'idle' | 'ok' | 'erro';
 
 export function SiteCard({
+  siteId,
   name,
   subdomain,
   companyName,
@@ -32,6 +40,7 @@ export function SiteCard({
   viewsCount,
   metaTagVerified,
   createdAtLabel,
+  verificarEndereco,
 }: Props) {
   const reduced = useReducedMotion();
   const [copy, setCopy] = useState<CopyState>('idle');
@@ -39,6 +48,42 @@ export function SiteCard({
 
   const host = `${subdomain}${APP_CONFIG.SUBDOMAIN_SUFFIX}`;
   const url = `https://${host}`;
+
+  /*
+   * A Vercel emite o certificado do subdomínio de 2 a 4 minutos DEPOIS do build
+   * terminar. Oferecer o link nesse intervalo faz o cliente clicar, ver erro de
+   * conexão e concluir que o site quebrou.
+   *
+   * Em vez de esperar um tempo fixo, o endereço é sondado no servidor e
+   * liberado assim que responde de verdade — normalmente antes dos 5 minutos.
+   */
+  const [enderecoPronto, setEnderecoPronto] = useState(!verificarEndereco);
+
+  useEffect(() => {
+    if (enderecoPronto) return;
+
+    let cancelado = false;
+
+    const sondar = async () => {
+      try {
+        const resposta = await fetch(`/api/sites/${siteId}/domain-status`, {
+          cache: 'no-store',
+        });
+        const corpo = await resposta.json();
+        if (!cancelado && corpo?.data?.pronto === true) setEnderecoPronto(true);
+      } catch {
+        // Rede instável: a próxima volta tenta de novo.
+      }
+    };
+
+    void sondar();
+    const intervalo = window.setInterval(sondar, 15_000);
+
+    return () => {
+      cancelado = true;
+      window.clearInterval(intervalo);
+    };
+  }, [siteId, enderecoPronto]);
 
   // Halo que acompanha o cursor. Motion values em vez de estado: mover o mouse
   // não pode disparar re-render do cartão inteiro.
@@ -107,14 +152,28 @@ export function SiteCard({
       </div>
 
       <div className="relative mt-5 flex items-center gap-2">
-        <a
-          href={url}
-          target="_blank"
-          rel="noreferrer"
-          className="min-w-0 truncate text-sm text-amber-400 transition-colors hover:text-amber-300 hover:underline"
-        >
-          {host}
-        </a>
+        {enderecoPronto ? (
+          <a
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="min-w-0 truncate text-sm text-amber-400 transition-colors hover:text-amber-300 hover:underline"
+          >
+            {host}
+          </a>
+        ) : (
+          <span
+            title="O endereço fica disponível assim que o certificado é emitido — leva alguns minutos."
+            className="flex min-w-0 items-center gap-2 text-sm text-dark-400"
+          >
+            <span
+              aria-hidden
+              className="h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-amber-500/30 border-t-amber-400"
+            />
+            <span className="truncate">{host}</span>
+            <span className="shrink-0 text-xs text-dark-500">liberando…</span>
+          </span>
+        )}
 
         <button
           type="button"

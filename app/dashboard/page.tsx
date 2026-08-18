@@ -7,6 +7,9 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getSitesByUser } from '@/app/actions/site';
 import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
+
+/** Janela em que o certificado do subdomínio pode ainda não ter sido emitido. */
+const DOMAIN_PROPAGATION_WINDOW_MS = 20 * 60 * 1000;
 import { Reveal } from '@/components/ui/reveal';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { TokenBalance } from '@/components/dashboard/token-balance';
@@ -220,6 +223,7 @@ export default async function DashboardPage() {
                 // Separar os nós evita que as duas bibliotecas disputem o transform.
                 <div key={site.id} data-site>
                   <SiteCard
+                    siteId={site.id}
                     name={site.name}
                     subdomain={site.subdomain}
                     companyName={site.companyName}
@@ -230,6 +234,11 @@ export default async function DashboardPage() {
                       addSuffix: true,
                       locale: ptBR,
                     })}
+                    /* Só sonda o endereço de site recém-criado: nos antigos o
+                       certificado existe há muito e a consulta seria puro ruído. */
+                    verificarEndereco={
+                      Date.now() - site.createdAt.getTime() < DOMAIN_PROPAGATION_WINDOW_MS
+                    }
                   />
                 </div>
               ))}
