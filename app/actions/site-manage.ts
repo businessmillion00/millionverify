@@ -7,6 +7,11 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 import { normalizeSubdomain } from '@/lib/subdomain';
+import { APP_CONFIG } from '@/lib/constants';
+import {
+  isDomainAutomationConfigured,
+  removeProjectDomain,
+} from '@/services/vercel-domains';
 
 /**
  * Chaves de template aceitas. Duplica a lista de components/site-templates/types
@@ -280,10 +285,10 @@ export async function deleteSite(input: unknown) {
     const { siteId } = parsed.data;
     const confirmation = normalizeSubdomain(parsed.data.confirmation ?? '');
 
-    await prisma.$transaction(async (tx) => {
+    const excluido = await prisma.$transaction(async (tx) => {
       const current = await tx.site.findFirst({
         where: { id: siteId, userId, isDeleted: false },
-        select: { name: true, subdomain: true },
+        select: { name: true, subdomain: true, customDomain: true },
       });
 
       if (!current) throw new Error('SITE_NOT_FOUND');
@@ -307,7 +312,19 @@ export async function deleteSite(input: unknown) {
           status: 'success',
         },
       });
+
+      return current;
     });
+
+    /*
+     * Limpeza do domínio FORA da transação: é chamada de rede, e mantê-la
+     * dentro seguraria a transação aberta esperando I/O. A função não lança —
+     * um domínio órfão no painel da Vercel é irritante, não é motivo para a
+     * exclusão do site falhar depois de já estar gravada.
+     */
+    if (!excluido.customDomain && isDomainAutomationConfigured()) {
+      await removeProjectDomain(`${excluido.subdomain}${APP_CONFIG.SUBDOMAIN_SUFFIX}`);
+    }
 
     revalidateSite(siteId);
     return { success: true, message: 'Site excluído' };

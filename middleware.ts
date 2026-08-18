@@ -40,9 +40,16 @@ export default auth((request) => {
   // Multi-tenancy: qualquer host que não seja o root é um site de cliente.
   if (host && !ROOT_HOSTS.has(host)) {
     const subdomain = host.split('.')[0];
-    return NextResponse.rewrite(
-      new URL(`/sites/${subdomain}${pathname}`, request.url)
-    );
+
+    /*
+     * Sem o tratamento da raiz, `/sites/{sub}` + `/` vira `/sites/{sub}/` — e o
+     * Next responde 308 para tirar a barra final. Como 308 é REDIRECIONAMENTO e
+     * não reescrita, o caminho interno aparecia na barra de endereços do
+     * visitante: alliance-one.million-verify.com/sites/alliance-one.
+     */
+    const target = pathname === '/' ? `/sites/${subdomain}` : `/sites/${subdomain}${pathname}`;
+
+    return NextResponse.rewrite(new URL(target, request.url));
   }
 
   const session = request.auth;

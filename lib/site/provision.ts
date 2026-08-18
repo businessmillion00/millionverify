@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { grantTokens } from '@/lib/tokens/ledger';
 import { recordAudit } from '@/lib/security/audit';
 import { APP_CONFIG, TIMEOUTS, TOKENS_PER_SITE } from '@/lib/constants';
+import {
+  addProjectDomain,
+  isDomainAutomationConfigured,
+} from '@/services/vercel-domains';
 import { siteHost, siteUrl } from '@/lib/subdomain';
 import { formatCNPJ } from '@/lib/utils';
 import { buildSiteContentFromRegistry, siteContentToJson } from '@/lib/company/profile';
@@ -1153,6 +1157,26 @@ export async function provisionSite(siteId: string): Promise<ProvisionResult> {
     });
 
     await runStep(context, 'publicacao', async () => {
+      const host = siteHost(site);
+
+      /*
+       * O subdomínio precisa existir como domínio do projeto ANTES de o site
+       * ser marcado como publicado: sem isso a Vercel não emite certificado e
+       * o cliente recebe um endereço que não abre.
+       *
+       * Domínio próprio não passa por aqui — quem aponta o DNS é o cliente.
+       */
+      if (!site.customDomain && isDomainAutomationConfigured()) {
+        const registered = await addProjectDomain(host);
+
+        if (!registered.ok) {
+          // not-configured em produção é erro de operação, não do usuário; os
+          // demais casos idem. Abortar aqui devolve os tokens pelo caminho de
+          // falha que já existe, em vez de publicar um site inacessível.
+          throw new Error(`Não foi possível publicar em ${host}: ${registered.message}`);
+        }
+      }
+
       const { count: published } = await prisma.site.updateMany({
         where: { id: siteId, buildStatus: 'BUILDING' },
         data: {
@@ -1164,7 +1188,7 @@ export async function provisionSite(siteId: string): Promise<ProvisionResult> {
 
       if (published === 0) throw new BuildAbortedError();
 
-      return { value: null, detail: `No ar em ${siteHost(site)}.` };
+      return { value: null, detail: `No ar em ${host}.` };
     });
 
     await runStep(context, 'verificacao', async () => {
