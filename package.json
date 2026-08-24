@@ -1,7 +1,7 @@
 {
   "name": "business-million",
   "version": "1.0.0",
-  "description": "SaaS Elite - Business Manager Verificador",
+  "description": "Million Verify - verificador de Business Manager",
   "private": true,
   "scripts": {
     "dev": "next dev",

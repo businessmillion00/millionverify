@@ -23,7 +23,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Visão geral · Business Million',
+  title: 'Visão geral · Million Verify',
 };
 
 /** Fuso fixo: os rótulos nascem no servidor e não podem depender do TZ da máquina. */

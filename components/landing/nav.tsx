@@ -40,7 +40,7 @@ export function Nav() {
             className="h-7 w-7 shrink-0"
           />
           <span className="text-sm font-semibold tracking-tight">
-            Business Million
+            Million Verify
           </span>
         </Link>
 

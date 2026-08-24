@@ -84,7 +84,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   );
 
   // Sem sobrescrever, o site do cliente herdaria title, description e keywords
-  // da plataforma (app/layout.tsx) — a marca Business Million apareceria no
+  // da plataforma (app/layout.tsx) — a marca Million Verify apareceria no
   // <head> de um site institucional de terceiro.
   const keywords = [
     site.companyName,
@@ -157,7 +157,7 @@ export default async function TenantSiteLayout({ children, params }: Props) {
 
   /**
    * app/globals.css é o CSS da plataforma e pinta o <body> de todo mundo:
-   * texto branco, degradê escuro e barra de rolagem âmbar da Business Million.
+   * texto branco, degradê escuro e barra de rolagem âmbar da Million Verify.
    * Num site de cliente com fundo claro isso aparece na área de overscroll e na
    * barra de rolagem — marca nossa dentro do site dele.
    *

@@ -8,7 +8,7 @@ import { Topbar } from '@/components/dashboard/topbar';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Master Control · Business Million',
+  title: 'Master Control · Million Verify',
 };
 
 export default async function AdminLayout({

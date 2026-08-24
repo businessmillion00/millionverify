@@ -13,6 +13,9 @@ import { BM_DOMAINS_URL } from '@/components/verification/tutorial-steps';
  * despublicado devolve 404 para sempre e o cliente nunca descobriria por quê.
  *
  * 1. unpublished  → o site responde 404; nada mais importa.
+ * 1b. propagating → publicado, mas o endereço ainda não responde: a Vercel leva
+ *      alguns minutos para emitir o certificado do subdomínio. Verificar agora
+ *      falha SEMPRE, porque a Meta não consegue abrir a página.
  * 2. missing-code → não existe código salvo; a Meta não tem o que verificar.
  * 3. awaiting     → código salvo, ainda não confirmado no HTML/DNS.
  * 4. verified     → falta só clicar em "Verificar domínio" no Business Manager.
@@ -21,7 +24,12 @@ import { BM_DOMAINS_URL } from '@/components/verification/tutorial-steps';
  * pintura e o ScrollTrigger do Reveal não dispararia, deixando-o em opacity 0.
  */
 
-export type VerificationState = 'unpublished' | 'missing-code' | 'awaiting' | 'verified';
+export type VerificationState =
+  | 'unpublished'
+  | 'propagating'
+  | 'missing-code'
+  | 'awaiting'
+  | 'verified';
 
 type Props = {
   siteId: string;
@@ -36,6 +44,11 @@ const TONE: Record<VerificationState, { frame: string; badge: string; label: str
     frame: 'border-red-500/30 bg-red-500/5',
     badge: 'badge badge-error',
     label: 'Site fora do ar',
+  },
+  propagating: {
+    frame: 'border-amber-500/30 bg-amber-500/5',
+    badge: 'badge badge-warning',
+    label: 'Preparando o endereço',
   },
   'missing-code': {
     frame: 'border-red-500/30 bg-red-500/5',
@@ -134,6 +147,34 @@ export function StatusBanner({ siteId, state, host, lastCheckedLabel }: Props) {
             </div>
 
             {publishError && <p className="mt-3 text-xs text-red-400">{publishError}</p>}
+          </>
+        )}
+
+        {state === 'propagating' && (
+          <>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-dark-300">
+              O site foi publicado, mas <span className="text-white">{host}</span>{' '}
+              ainda não responde: o certificado de segurança do endereço leva de dois
+              a quatro minutos para ser emitido. É automático e não exige nada de você.
+            </p>
+
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-dark-300">
+              <strong className="text-white">Espere o endereço abrir antes de verificar
+              na Meta.</strong>{' '}
+              A verificação funciona com a Meta visitando o seu site — se ela visitar
+              agora, não conseguirá abrir a página e o domínio será recusado, mesmo com
+              o código correto salvo aqui.
+            </p>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => router.refresh()}
+                className="btn-secondary text-sm"
+              >
+                Conferir de novo
+              </button>
+            </div>
           </>
         )}
 

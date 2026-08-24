@@ -30,7 +30,7 @@ export function CtaFooter() {
           <div className="flex items-center gap-2.5">
             <span className="h-5 w-5 rounded bg-gradient-amber" />
             <Image src="/logo.png" alt="" width={24} height={24} className="h-6 w-6" />
-            <span className="text-sm font-medium">Business Million</span>
+            <span className="text-sm font-medium">Million Verify</span>
           </div>
 
           <p className="text-xs text-dark-500">

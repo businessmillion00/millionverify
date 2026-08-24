@@ -5,7 +5,7 @@ export default function LoginPage() {
   return (
     <main className="container-safe flex min-h-screen flex-col items-center justify-center">
       <h1 className="text-3xl font-semibold tracking-tight">
-        Entrar na <span className="text-gradient">Business Million</span>
+        Entrar na <span className="text-gradient">Million Verify</span>
       </h1>
       <p className="mt-2 text-sm text-dark-400">
         Acesse seu painel de sites e tokens.

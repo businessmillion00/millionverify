@@ -326,7 +326,7 @@ function SidebarBody({
           href={variant === 'admin' ? '/admin' : '/dashboard'}
           onClick={onNavigate}
           className="flex items-center gap-3"
-          title={collapsed ? 'Business Million' : undefined}
+          title={collapsed ? 'Million Verify' : undefined}
         >
           <Image
             src="/logo.png"
@@ -338,7 +338,7 @@ function SidebarBody({
           {!collapsed && (
             <span className="flex flex-col leading-none">
               <span className="text-sm font-semibold tracking-tight">
-                Business Million
+                Million Verify
               </span>
               <span
                 className={cn(

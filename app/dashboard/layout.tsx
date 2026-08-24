@@ -8,7 +8,7 @@ import { Topbar } from '@/components/dashboard/topbar';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Painel · Business Million',
+  title: 'Painel · Million Verify',
 };
 
 export default async function DashboardLayout({

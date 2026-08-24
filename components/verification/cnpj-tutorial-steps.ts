@@ -82,7 +82,7 @@ export const CNPJ_TUTORIAL_STEPS: readonly TutorialStep[] = [
     ],
     callout: {
       title: 'Quem emite o documento é a Receita Federal',
-      body: 'A Business Million não emite, não reproduz e não assina comprovantes — nós só encurtamos o caminho até o emissor oficial, com o seu CNPJ já preenchido. O PDF sai do site da Receita, com os dados e a autenticação dela. É exatamente esse arquivo que a Meta aceita.',
+      body: 'A Million Verify não emite, não reproduz e não assina comprovantes — nós só encurtamos o caminho até o emissor oficial, com o seu CNPJ já preenchido. O PDF sai do site da Receita, com os dados e a autenticação dela. É exatamente esse arquivo que a Meta aceita.',
     },
     external: {
       href: `${RECEITA_CNPJREVA_URL}/{cnpj}`,

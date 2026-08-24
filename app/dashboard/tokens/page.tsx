@@ -18,7 +18,7 @@ import {
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Tokens · Business Million',
+  title: 'Tokens · Million Verify',
 };
 
 /** Fuso fixo: os rótulos nascem no servidor e não podem depender do TZ da máquina. */

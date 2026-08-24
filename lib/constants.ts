@@ -78,7 +78,7 @@ export const ASAAS_CONFIG = {
 } as const;
 
 export const APP_CONFIG = {
-  NAME: 'Business Million',
+  NAME: 'Million Verify',
   DESCRIPTION: 'Verificador de Business Managers e Gerador de Sites',
   DOMAIN: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
   /*

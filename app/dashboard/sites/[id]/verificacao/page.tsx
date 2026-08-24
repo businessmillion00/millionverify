@@ -19,7 +19,7 @@ import { TutorialTrigger } from '@/components/verification/tutorial-trigger';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: 'Verificação · Business Million',
+  title: 'Verificação · Million Verify',
 };
 
 type Props = {
@@ -32,6 +32,36 @@ type Props = {
  */
 const label = (date: Date | null): string | null =>
   date === null ? null : date.toLocaleString('pt-BR');
+
+/** Janela em que o certificado do subdomínio ainda pode estar sendo emitido. */
+const PROPAGATION_WINDOW_MS = 20 * 60 * 1000;
+const PROBE_TIMEOUT_MS = 5_000;
+
+/**
+ * O endereço público já responde?
+ *
+ * A Vercel emite o certificado do subdomínio de forma assíncrona, minutos depois
+ * de o build terminar. Nesse intervalo a Meta não consegue abrir o site — e
+ * verificar agora falha SEMPRE, queimando uma tentativa e confundindo o cliente.
+ *
+ * Só é sondado em site recém-criado: nos antigos o certificado existe há muito e
+ * a consulta atrasaria a página à toa.
+ */
+async function enderecoResponde(url: string, criadoEm: Date): Promise<boolean> {
+  if (Date.now() - criadoEm.getTime() > PROPAGATION_WINDOW_MS) return true;
+
+  try {
+    await fetch(url, {
+      method: 'HEAD',
+      redirect: 'manual',
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+      cache: 'no-store',
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 const isoLabel = (iso: string | null): string | null => {
   if (iso === null) return null;
@@ -60,13 +90,21 @@ export default async function SiteVerificationPage({ params }: Props) {
 
   // A ordem é de bloqueio, não de importância: um site despublicado responde 404
   // e nenhuma outra mensagem faria sentido antes de resolver isso.
+  // Publicado não significa acessível: o certificado do subdomínio pode estar
+  // saindo ainda. Verificar antes disso falha sempre.
+  const enderecoPronto = site.isPublished
+    ? await enderecoResponde(url, site.createdAt)
+    : false;
+
   const state: VerificationState = !site.isPublished
     ? 'unpublished'
-    : !hasCode
-      ? 'missing-code'
-      : verified
-        ? 'verified'
-        : 'awaiting';
+    : !enderecoPronto
+      ? 'propagating'
+      : !hasCode
+        ? 'missing-code'
+        : verified
+          ? 'verified'
+          : 'awaiting';
 
   // O parser é o do dono do contrato: a coluna é Json e pode trazer o formato
   // gravado por uma versão anterior.
@@ -112,6 +150,32 @@ export default async function SiteVerificationPage({ params }: Props) {
       />
 
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {/*
+          O painel só aparece com o endereço no ar. Deixá-lo disponível durante a
+          propagação convida o cliente a colar o código e clicar em verificar —
+          que falharia sempre, porque a Meta não conseguiria abrir o site.
+        */}
+        {state === 'propagating' ? (
+          <section className="card" aria-busy="true">
+            <h2 className="text-lg font-semibold text-white">Verificação de domínio</h2>
+            <p className="mt-2 text-sm text-dark-400">
+              Disponível assim que <span className="text-dark-200">{host}</span>{' '}
+              estiver acessível. Costuma levar de dois a quatro minutos depois da
+              publicação.
+            </p>
+
+            <div className="mt-6 space-y-3">
+              {[0, 1, 2].map((linha) => (
+                <div key={linha} className="h-10 w-full animate-pulse rounded-lg bg-white/5" />
+              ))}
+            </div>
+
+            <p className="mt-4 text-xs text-dark-500">
+              Enquanto espera, vale abrir o passo a passo no botão acima e deixar o
+              Business Manager pronto na outra aba.
+            </p>
+          </section>
+        ) : (
         <VerificationPanel
           siteId={site.id}
           host={host}
@@ -123,6 +187,7 @@ export default async function SiteVerificationPage({ params }: Props) {
           verificationTxtVerified={site.verificationTxtVerified}
           verificationTxtLastCheckedLabel={label(site.verificationTxtLastCheckedAt)}
         />
+        )}
 
         <SiteLiveCard
           host={host}
