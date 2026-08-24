@@ -27,7 +27,7 @@ export async function createSite(input: unknown) {
       return { success: false, error: 'Dados inválidos', errors: parsed.error.flatten() };
     }
 
-    const { name, companyName, cnpj, subdomain, description, metaTag } = parsed.data;
+    const { name, companyName, cnpj, subdomain, description, metaTag, phone } = parsed.data;
 
     // Buscar usuário
     const user = await prisma.user.findUnique({
@@ -97,6 +97,13 @@ export async function createSite(input: unknown) {
           subdomain,
           description,
           metaTag,
+          /*
+           * Só os dígitos: o provisionamento formata para exibição, e guardar a
+           * máscara faria o mesmo telefone divergir conforme quem digitou.
+           * Vazio vira null para o `site.phone ?? registry.phone` do
+           * provisionamento cair no telefone da Receita.
+           */
+          phone: phone?.replace(/\D/g, '') || null,
           isPublished: true,
           theme: {
             bgColor: '#121212',

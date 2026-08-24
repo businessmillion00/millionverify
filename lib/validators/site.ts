@@ -18,6 +18,19 @@ export const CreateSiteSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Subdomínio pode conter apenas letras, números e hífen'),
   metaTag: z.string()
     .optional(),
+  /*
+   * Telefone de contato exibido no SITE do cliente. Opcional: sem ele, o
+   * provisionamento cai no telefone registrado na Receita.
+   * Aceita vazio para o usuário conseguir limpar o campo.
+   */
+  phone: z.string()
+    .trim()
+    .max(20, 'Telefone deve ter no máximo 20 caracteres')
+    .refine(
+      (valor) => valor === '' || /^\d{10,11}$/.test(valor.replace(/\D/g, '')),
+      'Informe DDD e número, com 10 ou 11 dígitos',
+    )
+    .optional(),
 });
 
 export const UpdateSiteSchema = CreateSiteSchema.partial();

@@ -34,6 +34,8 @@ export type WizardData = {
   cnpjInfo: WizardCnpjInfo | null;
   name: string;
   description: string;
+  /** Telefone de contato mostrado no site. Vazio = usa o da Receita. */
+  phone: string;
   subdomain: string;
   metaTag: string;
   template: SiteTemplateKey;
@@ -48,7 +50,7 @@ type Props = {
 
 const STEPS = [
   { title: 'CNPJ', hint: 'Consulta na Receita Federal' },
-  { title: 'Identidade', hint: 'Nome, subdomínio e meta tag' },
+  { title: 'Identidade', hint: 'Nome, contato, subdomínio e meta tag' },
   { title: 'Revisão', hint: 'Prévia e custo em tokens' },
 ] as const;
 
@@ -58,6 +60,7 @@ const INITIAL_DATA: WizardData = {
   cnpjInfo: null,
   name: '',
   description: '',
+  phone: '',
   subdomain: '',
   metaTag: '',
   template: 'minimal',

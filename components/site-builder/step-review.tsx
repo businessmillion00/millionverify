@@ -73,6 +73,7 @@ export function StepReview({
         cnpj: data.cnpj,
         subdomain: data.subdomain,
         description: data.description.trim() || undefined,
+        phone: data.phone.trim() || undefined,
         metaTag: data.metaTag.trim() || undefined,
       });
 

@@ -20,6 +20,19 @@ type Props = {
 const NAME_MAX = 100;
 const DESCRIPTION_MAX = 500;
 
+/**
+ * Máscara de telefone brasileiro. Aplicada durante a digitação para o usuário
+ * não precisar acertar a pontuação — o servidor valida só os dígitos.
+ */
+function mascararTelefone(bruto: string): string {
+  const d = bruto.replace(/\D/g, '').slice(0, 11);
+
+  if (d.length <= 2) return d;
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
 /** Token válido de verificação de domínio do Meta: sem espaço, aspas ou `<`. */
 const META_TAG_TOKEN = /^[A-Za-z0-9._-]+$/;
 
@@ -51,6 +64,12 @@ export function StepIdentity({
     // Só na montagem: reescrever depois atropelaria o que o usuário digitou.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Só acusa erro depois de o usuário passar do DDD: reclamar no primeiro
+  // dígito seria ruído enquanto ele ainda está digitando.
+  const digitosTelefone = data.phone.replace(/\D/g, '');
+  const telefoneInvalido =
+    digitosTelefone.length > 2 && (digitosTelefone.length < 10 || digitosTelefone.length > 11);
 
   const handleValidityChange = useCallback((valid: boolean) => {
     setSubdomainValid(valid);
@@ -119,6 +138,32 @@ export function StepIdentity({
           <p className="mt-1 text-xs tabular-nums text-dark-500">
             {data.description.length}/{DESCRIPTION_MAX}
           </p>
+        </div>
+
+        <div>
+          <label htmlFor="site-phone" className="mb-2 block text-sm font-medium">
+            Telefone de contato <span className="text-dark-500">(opcional)</span>
+          </label>
+          <input
+            id="site-phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel"
+            value={data.phone}
+            onChange={(e) => onChange({ phone: mascararTelefone(e.target.value) })}
+            placeholder="(11) 98765-4321"
+            aria-describedby="site-phone-ajuda"
+            aria-invalid={telefoneInvalido}
+          />
+          <p id="site-phone-ajuda" className="mt-1 text-xs text-dark-500">
+            Aparece na seção de contato do site e na política de privacidade. Em
+            branco, usamos o telefone registrado na Receita Federal.
+          </p>
+          {telefoneInvalido && (
+            <p role="alert" className="mt-1 text-xs text-red-400">
+              Informe DDD e número — 10 ou 11 dígitos.
+            </p>
+          )}
         </div>
 
         <SubdomainInput
