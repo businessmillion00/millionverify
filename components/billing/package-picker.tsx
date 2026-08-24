@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import {
   TOKEN_MAX_PURCHASE,
   TOKEN_MIN_PURCHASE,
+  TOKEN_DISCOUNT_THRESHOLD,
+  betterDeal,
   TOKEN_PRESETS,
-  TOKEN_UNIT_PRICE,
   parseTokenQuantity,
   tokenOrder,
 } from '@/lib/constants';
@@ -44,6 +45,13 @@ export function PackagePicker({ billingEnabled }: Props) {
   // exibir um valor e a cobrança sair outro.
   const chosen = tokenOrder(quantity);
   const customInvalid = customText.trim() !== '' && customQuantity === null;
+
+  /*
+   * O degrau de desconto cria uma faixa em que levar MENOS custa MAIS: 9 tokens
+   * saem por R$ 225 e 10 por R$ 200. Esconder isso faria o cliente descobrir
+   * depois de pagar.
+   */
+  const melhorOferta = betterDeal(chosen.tokens);
   const canBuy = billingEnabled && !pending && (!usingCustom || customQuantity !== null);
 
   const selectPreset = (value: number) => {
@@ -131,11 +139,25 @@ export function PackagePicker({ billingEnabled }: Props) {
 
               <div className="divider my-4" />
 
-              <p className="text-2xl font-semibold tabular-nums">
+              {/* Altura fixa: sem ela os cards com e sem desconto desalinham. */}
+              <div className="flex min-h-[22px] items-center gap-2">
+                {order.discount > 0.005 && (
+                  <>
+                    <span className="badge bg-emerald-500/15 text-xs text-emerald-400">
+                      −{Math.round(order.discount * 100)}%
+                    </span>
+                    <span className="text-xs text-dark-500 line-through tabular-nums">
+                      {formatCurrency(order.listPrice)}
+                    </span>
+                  </>
+                )}
+              </div>
+
+              <p className="mt-1 text-2xl font-semibold tabular-nums">
                 {formatCurrency(order.price)}
               </p>
               <p className="mt-1 text-xs text-dark-500 tabular-nums">
-                {formatCurrency(TOKEN_UNIT_PRICE)} por token
+                {formatCurrency(order.unitPrice)} por token
               </p>
             </button>
           );
@@ -176,6 +198,9 @@ export function PackagePicker({ billingEnabled }: Props) {
                 {plural(customQuantity, 'site', 'sites')} ·{' '}
                 <span className="font-medium text-white">
                   {formatCurrency(tokenOrder(customQuantity).price)}
+                </span>{' '}
+                <span className="text-dark-500">
+                  ({formatCurrency(tokenOrder(customQuantity).unitPrice)}/token)
                 </span>
               </>
             ) : (
@@ -200,12 +225,47 @@ export function PackagePicker({ billingEnabled }: Props) {
           <p className="mt-1 text-xs text-dark-500 tabular-nums">
             Publica {plural(chosen.sites, 'site', 'sites')}
           </p>
+          {chosen.savings > 0.01 ? (
+            <p className="mt-1 text-xs text-emerald-400 tabular-nums">
+              Você economiza {formatCurrency(chosen.savings)}
+            </p>
+          ) : (
+            <p className="mt-1 text-xs text-dark-500 tabular-nums">
+              A partir de {TOKEN_DISCOUNT_THRESHOLD} tokens o preço cai para{' '}
+              {formatCurrency(tokenOrder(TOKEN_DISCOUNT_THRESHOLD).unitPrice)} cada.
+            </p>
+          )}
           {error && (
             <p role="alert" className="mt-1 text-xs text-red-400">
               {error}
             </p>
           )}
         </div>
+
+        {melhorOferta && (
+          <button
+            type="button"
+            onClick={() => selectPreset(melhorOferta.tokens)}
+            disabled={pending}
+            className="w-full rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-left text-xs text-emerald-300 transition-colors hover:bg-emerald-500/10 disabled:opacity-40"
+          >
+            {melhorOferta.price < chosen.price ? (
+              <>
+                <strong>{melhorOferta.tokens} tokens custam menos</strong> —{' '}
+                {formatCurrency(melhorOferta.price)} em vez de {formatCurrency(chosen.price)}.
+                Clique para trocar.
+              </>
+            ) : (
+              <>
+                <strong>Leve {melhorOferta.tokens} pelo mesmo preço</strong> —{' '}
+                {formatCurrency(melhorOferta.price)}, com{' '}
+                {melhorOferta.tokens - chosen.tokens} site
+                {melhorOferta.tokens - chosen.tokens === 1 ? '' : 's'} a mais. Clique
+                para trocar.
+              </>
+            )}
+          </button>
+        )}
 
         <button
           type="button"

@@ -6,7 +6,7 @@ import gsap from 'gsap';
 import {
   TOKENS_PER_SITE,
   TOKEN_PRESETS,
-  TOKEN_UNIT_PRICE,
+  TOKEN_DISCOUNT_THRESHOLD,
   tokenOrder,
 } from '@/lib/constants';
 import { formatCurrency } from '@/lib/utils';
@@ -100,11 +100,24 @@ export function TokenSlider() {
             </div>
 
             <div className="text-right">
+              <div className="flex min-h-[24px] items-center justify-end gap-2">
+                {pkg.discount > 0.005 && (
+                  <>
+                    <span className="badge bg-emerald-500/15 text-xs text-emerald-400">
+                      −{Math.round(pkg.discount * 100)}%
+                    </span>
+                    <span className="text-sm text-dark-500 line-through tabular-nums">
+                      {formatCurrency(pkg.listPrice)}
+                    </span>
+                  </>
+                )}
+              </div>
+
               <p className="mt-1 text-5xl font-semibold tabular-nums">
                 <span ref={priceRef}>{fmtBRL(pkg.price)}</span>
               </p>
               <p className="mt-1 text-xs text-dark-500 tabular-nums">
-                {formatCurrency(TOKEN_UNIT_PRICE)} por token
+                {formatCurrency(pkg.unitPrice)} por token
               </p>
             </div>
           </div>
@@ -176,8 +189,16 @@ export function TokenSlider() {
                 <span ref={sitesRef}>{fmtInt(pkg.sites)}</span>{' '}
                 {pkg.sites === 1 ? 'site publicado' : 'sites publicados'}
               </p>
-              <p className="mt-1 text-xs text-dark-500 tabular-nums">
-                {formatCurrency(TOKEN_UNIT_PRICE)} por token, sem mensalidade
+              <p className="mt-1 text-xs tabular-nums">
+                {pkg.savings > 0.01 ? (
+                  <span className="text-emerald-400">
+                    Você economiza {formatCurrency(pkg.savings)}
+                  </span>
+                ) : (
+                  <span className="text-dark-500">
+                    A partir de {TOKEN_DISCOUNT_THRESHOLD} tokens sai mais barato
+                  </span>
+                )}
               </p>
             </div>
 
