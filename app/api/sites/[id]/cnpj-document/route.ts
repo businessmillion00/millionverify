@@ -203,7 +203,14 @@ async function handleGenerate(request: NextRequest, context: Context): Promise<N
     // Buscar site com registryData (dados cadastrais completos da Receita)
     const site = await prisma.site.findFirst({
       where: { id, userId: session.user.id, isDeleted: false },
-      select: { id: true, cnpj: true, companyName: true, registryData: true, cnpjDocumentUrl: true },
+      select: {
+        id: true,
+        cnpj: true,
+        companyName: true,
+        phone: true,
+        registryData: true,
+        cnpjDocumentUrl: true,
+      },
     });
 
     if (!site) {
@@ -241,6 +248,9 @@ async function handleGenerate(request: NextRequest, context: Context): Promise<N
         porte: '',
         isMatrix: true,
       };
+
+    // O telefone informado pelo lead tem precedência sobre o telefone da Receita.
+    if (site.phone) cartaoData.phone = site.phone;
 
     // Garantir campos mínimos
     if (!cartaoData.cnpj || !cartaoData.companyName) {
@@ -309,6 +319,7 @@ export async function GET(request: NextRequest, context: Context) {
         id: true,
         cnpj: true,
         companyName: true,
+        phone: true,
         registryData: true,
         cnpjDocumentUrl: true,
       },
@@ -348,6 +359,10 @@ export async function GET(request: NextRequest, context: Context) {
         porte: '',
         isMatrix: true,
       };
+
+    // O telefone informado pelo lead tem precedência sobre o telefone da Receita.
+    if (site.phone) cartaoData.phone = site.phone;
+
     if (!cartaoData.cnpj || !cartaoData.companyName) {
       cartaoData.cnpj = site.cnpj;
       cartaoData.companyName = site.companyName;

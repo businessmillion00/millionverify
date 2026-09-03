@@ -41,6 +41,10 @@ const CnpjResponseSchema = z.object({
   error: z.string().optional(),
 });
 
+const RandomCnpjResponseSchema = z.object({
+  cnpj: z.string(),
+});
+
 const NAME_MAX = 100;
 
 /**
@@ -61,6 +65,7 @@ const maskCnpj = (value: string) =>
 
 export function StepCnpj({ data, onChange, onNext }: Props) {
   const [loading, setLoading] = useState(false);
+  const [randomLoading, setRandomLoading] = useState(false);
   const [error, setError] = useState('');
 
   const info = data.cnpjInfo;
@@ -89,9 +94,60 @@ export function StepCnpj({ data, onChange, onNext }: Props) {
     });
   };
 
+  const handleRandom = async () => {
+    if (loading || randomLoading) return;
+
+    setError('');
+    setRandomLoading(true);
+
+    try {
+      const randomResponse = await fetch('/api/cnpj/random', { cache: 'no-store' });
+      const randomJson: unknown = await randomResponse.json();
+      const randomParsed = RandomCnpjResponseSchema.safeParse(randomJson);
+
+      if (!randomResponse.ok || !randomParsed.success) {
+        const message =
+          typeof randomJson === 'object' && randomJson !== null && 'error' in randomJson
+            ? String((randomJson as { error?: unknown }).error ?? '')
+            : '';
+        setError(message || 'Não foi possível sortear um CNPJ ativo. Tente novamente.');
+        return;
+      }
+
+      const lookupResponse = await fetch('/api/cnpj', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cnpj: randomParsed.data.cnpj }),
+      });
+      const lookupJson = CnpjResponseSchema.safeParse(await lookupResponse.json());
+
+      if (!lookupResponse.ok || !lookupJson.success || !lookupJson.data.data) {
+        setError('Não foi possível confirmar o CNPJ sorteado. Tente novamente.');
+        return;
+      }
+
+      const found = lookupJson.data.data;
+      if (!found.isActive) {
+        setError('O CNPJ sorteado não está ativo. Tente novamente.');
+        return;
+      }
+
+      onChange({
+        cnpj: maskCnpj(found.cnpj),
+        cnpjInfo: found,
+        companyName: found.name,
+        name: data.name || suggestedName(found),
+      });
+    } catch {
+      setError('Erro de conexão ao buscar um CNPJ ativo. Tente novamente.');
+    } finally {
+      setRandomLoading(false);
+    }
+  };
+
   const handleLookup = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (loading) return;
+    if (loading || randomLoading) return;
 
     const parsed = CheckCNPJSchema.safeParse({ cnpj: data.cnpj });
     if (!parsed.success) {
@@ -153,17 +209,34 @@ export function StepCnpj({ data, onChange, onNext }: Props) {
           placeholder="00.000.000/0000-00"
           inputMode="numeric"
           aria-label="CNPJ"
-          disabled={loading}
+          disabled={loading || randomLoading}
           className="flex-1 border-none bg-transparent text-lg tracking-wide"
         />
         <button
           type="submit"
-          disabled={loading || digits.length !== 14}
+          disabled={loading || randomLoading || digits.length !== 14}
           className="btn-primary shrink-0 disabled:opacity-40 disabled:hover:scale-100"
         >
           {loading ? 'Consultando…' : 'Consultar CNPJ'}
         </button>
       </form>
+
+      <div className="glass mt-3 flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center">
+        <div>
+          <p className="text-sm font-medium">Não tem um CNPJ em mãos?</p>
+          <p className="mt-1 text-xs text-dark-400">
+            Buscamos um CNPJ ativo de um registro público e preenchemos o campo para você.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleRandom}
+          disabled={loading || randomLoading}
+          className="btn-ghost shrink-0 disabled:opacity-40"
+        >
+          {randomLoading ? 'Sorteando…' : 'Sortear aleatório'}
+        </button>
+      </div>
 
       {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
 
