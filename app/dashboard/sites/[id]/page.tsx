@@ -59,6 +59,15 @@ const readTemplateKey = (theme: Prisma.JsonValue): TemplateKey => {
   return 'minimal';
 };
 
+/** O banco guarda só dígitos; a máscara é aplicada ao exibir. */
+function formatPhoneForInput(phone: string | null): string {
+  if (!phone) return '';
+  const d = phone.replace(/\D/g, '');
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return phone;
+}
+
 export default async function SiteManagePage({ params, searchParams }: Props) {
   const session = await auth();
   const { id } = await params;
@@ -168,6 +177,27 @@ export default async function SiteManagePage({ params, searchParams }: Props) {
               />
               <p className="mt-1 text-xs text-dark-500">
                 Até 500 caracteres. Aparece na página e na prévia dos links.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="mb-2 block text-sm font-medium">
+                Telefone de contato
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                maxLength={20}
+                defaultValue={formatPhoneForInput(site.phone)}
+                placeholder="(11) 98765-4321"
+                className="w-full"
+              />
+              <p className="mt-1 text-xs text-dark-500">
+                Aparece na seção de contato do site e na política de privacidade. Em
+                branco, usamos o telefone registrado na Receita Federal.
               </p>
             </div>
 

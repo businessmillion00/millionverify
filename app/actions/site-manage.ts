@@ -39,6 +39,16 @@ const UpdateDetailsSchema = z.object({
     .max(500, 'Descrição deve ter no máximo 500 caracteres')
     .nullish(),
   metaTag: z.string().max(500, 'Meta tag muito longa').nullish(),
+  /* Mesma regra do assistente de criação (lib/validators/site.ts): 10 ou 11
+     dígitos, ou vazio para voltar ao telefone da Receita. */
+  phone: z
+    .string()
+    .max(20, 'Telefone deve ter no máximo 20 caracteres')
+    .refine(
+      (v) => v.trim() === '' || /^\d{10,11}$/.test(v.replace(/\D/g, '')),
+      'Informe DDD e número, com 10 ou 11 dígitos',
+    )
+    .nullish(),
 });
 
 const PublishSchema = z.object({
@@ -99,6 +109,8 @@ export async function updateSiteDetails(input: unknown) {
     const { siteId, name } = parsed.data;
     const description = emptyToNull(parsed.data.description);
     const rawMetaTag = emptyToNull(parsed.data.metaTag);
+    // Só dígitos, como na criação: a máscara é da tela, não do banco.
+    const phone = emptyToNull(parsed.data.phone)?.replace(/\D/g, '') || null;
     const metaTag = rawMetaTag === null ? null : extractMetaTagContent(rawMetaTag);
 
     if (metaTag !== null && !META_TAG_PATTERN.test(metaTag)) {
@@ -126,6 +138,7 @@ export async function updateSiteDetails(input: unknown) {
           name,
           description,
           metaTag,
+          phone,
           ...(metaTagChanged ? { metaTagVerified: false, metaTagLastCheckedAt: null } : {}),
         },
       });
@@ -138,7 +151,7 @@ export async function updateSiteDetails(input: unknown) {
           action: 'SITE_UPDATED',
           resource: 'site',
           resourceId: siteId,
-          changes: { name, description, metaTagChanged },
+          changes: { name, description, phone, metaTagChanged },
           status: 'success',
         },
       });
@@ -372,6 +385,7 @@ export async function updateSiteDetailsForm(formData: FormData) {
     name: formValue(formData, 'name') ?? '',
     description: formValue(formData, 'description'),
     metaTag: formValue(formData, 'metaTag'),
+    phone: formValue(formData, 'phone'),
   });
 
   redirect(feedbackUrl(siteId, result));
