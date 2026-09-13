@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+import { activeSiteWhere } from '@/lib/site/lifetime';
 import { siteHost } from '@/lib/subdomain';
 import { formatCNPJ } from '@/lib/utils';
 import { SITE_TEMPLATES, resolveTemplate } from '@/components/site-templates';
@@ -146,7 +147,7 @@ export default async function TenantSitePage({ params }: Props) {
   const { subdomain } = await params;
 
   const site = await prisma.site.findFirst({
-    where: { subdomain, isPublished: true, isDeleted: false },
+    where: { subdomain, isPublished: true, ...activeSiteWhere() },
   });
 
   if (!site) notFound();

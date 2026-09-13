@@ -6,7 +6,13 @@ import { ptBR } from 'date-fns/locale';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getSitesByUser } from '@/app/actions/site';
-import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
+import {
+  MAX_SITES_PER_USER,
+  SITE_LIFETIME_DAYS,
+  TOKENS_PER_SITE,
+  tokenLabel,
+} from '@/lib/constants';
+import { isExpiringSoon } from '@/lib/site/lifetime';
 
 /** Janela em que o certificado do subdomínio pode ainda não ter sido emitido. */
 const DOMAIN_PROPAGATION_WINDOW_MS = 20 * 60 * 1000;
@@ -175,7 +181,7 @@ export default async function DashboardPage() {
             <Metric
               label="Sites"
               value={listaSites.length.toLocaleString('pt-BR')}
-              hint="Limite de 5 por conta"
+              hint={`Limite de ${MAX_SITES_PER_USER} por conta · ${SITE_LIFETIME_DAYS} dias no ar cada`}
               glyph="M4 6.5A2.5 2.5 0 016.5 4h11A2.5 2.5 0 0120 6.5v11a2.5 2.5 0 01-2.5 2.5h-11A2.5 2.5 0 014 17.5v-11zM4 9h16"
             />
             <Metric
@@ -201,7 +207,7 @@ export default async function DashboardPage() {
             <p className="mt-1 text-sm text-dark-500">
               {listaSites.length === 0
                 ? 'Nenhum site publicado ainda'
-                : `${listaSites.length} de 5 sites usados`}
+                : `${listaSites.length} de ${MAX_SITES_PER_USER} sites usados`}
             </p>
           </div>
 
@@ -234,6 +240,11 @@ export default async function DashboardPage() {
                       addSuffix: true,
                       locale: ptBR,
                     })}
+                    expiresAtLabel={formatDistanceToNow(site.expiresAt, {
+                      addSuffix: true,
+                      locale: ptBR,
+                    })}
+                    expiringSoon={isExpiringSoon(site.expiresAt)}
                     /* Só sonda o endereço de site recém-criado: nos antigos o
                        certificado existe há muito e a consulta seria puro ruído. */
                     verificarEndereco={

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Reveal } from '@/components/ui/reveal';
+import { MAX_SITES_PER_USER, SITE_LIFETIME_DAYS } from '@/lib/constants';
 
 const ITEMS = [
   {
@@ -16,6 +17,10 @@ const ITEMS = [
   {
     q: 'O que acontece se a tag sair do ar?',
     a: 'Um job periódico busca cada site publicado e confere se a tag continua presente. Se sumir, o status muda no seu painel antes de a verificação cair do lado do Meta.',
+  },
+  {
+    q: 'Por quanto tempo o site fica no ar?',
+    a: `${SITE_LIFETIME_DAYS} dias. A verificação da Meta é feita uma vez e, confirmada, a página não precisa continuar publicada. Ao fim do prazo o site é excluído automaticamente e libera espaço na sua conta, que mantém até ${MAX_SITES_PER_USER} sites ao mesmo tempo.`,
   },
   {
     q: 'Como funcionam os tokens?',

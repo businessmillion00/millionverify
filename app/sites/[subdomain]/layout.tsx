@@ -10,6 +10,7 @@ import { cache } from 'react';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { prisma } from '@/lib/prisma';
+import { activeSiteWhere } from '@/lib/site/lifetime';
 import { siteUrl } from '@/lib/subdomain';
 import {
   buildPalette,
@@ -31,12 +32,13 @@ type Props = {
  * `cache` deduplica a consulta dentro da mesma requisição: generateMetadata e o
  * componente do layout chamam esta função e o banco é consultado uma vez só.
  *
- * O filtro isPublished/isDeleted é intencional e vale também para o <head>:
- * despublicar um site precisa derrubar a verificação da Meta junto.
+ * O filtro isPublished/isDeleted/expiresAt é intencional e vale também para o
+ * <head>: despublicar um site — ou o prazo dele vencer — precisa derrubar a
+ * verificação da Meta junto.
  */
 const getSiteChrome = cache(async (subdomain: string) =>
   prisma.site.findFirst({
-    where: { subdomain, isPublished: true, isDeleted: false },
+    where: { subdomain, isPublished: true, ...activeSiteWhere() },
     select: {
       name: true,
       companyName: true,

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createSite } from '@/app/actions/site';
 import { setSiteTemplate } from '@/app/actions/site-manage';
-import { APP_CONFIG } from '@/lib/constants';
+import { APP_CONFIG, SITE_LIFETIME_DAYS } from '@/lib/constants';
 import { formatCNPJ } from '@/lib/utils';
 import {
   DEFAULT_ACCENT_COLOR,
@@ -241,7 +241,8 @@ export function StepReview({
           </div>
 
           <p className="mt-4 text-xs text-dark-500">
-            Este será o seu site {Math.min(sitesCount + 1, maxSites)} de {maxSites}.
+            Este será o seu site {Math.min(sitesCount + 1, maxSites)} de {maxSites}. Ele
+            fica no ar por {SITE_LIFETIME_DAYS} dias e depois é excluído automaticamente.
           </p>
 
           {!hasBalance && (

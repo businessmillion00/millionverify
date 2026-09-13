@@ -211,6 +211,16 @@ model Site {
   isPublished         Boolean   @default(true)
   isDeleted           Boolean   @default(false)
 
+  // ── Vida útil ──
+  // O site não é permanente: passado este instante ele sai do ar (as consultas
+  // filtram por `expiresAt`) e a rotina de expiração o exclui.
+  //
+  // `createSite` SEMPRE grava o valor a partir de SITE_LIFETIME_DAYS
+  // (lib/constants.ts). O default no banco existe para preencher as linhas que
+  // já existiam quando a coluna nasceu — sem ele o `db push` recusaria a coluna
+  // NOT NULL — e dá 7 dias, contados do deploy, aos sites antigos.
+  expiresAt           DateTime  @default(dbgenerated("(now() + '7 days'::interval)"))
+
   // Analytics
   viewsCount          Int       @default(0)
   lastViewedAt        DateTime?
@@ -223,6 +233,9 @@ model Site {
   @@index([userId])
   @@index([subdomain])
   @@index([createdAt])
+  // A rotina de expiração varre por `expiresAt <= agora` e as páginas públicas
+  // filtram por `expiresAt > agora`.
+  @@index([expiresAt])
 }
 
 // ============ AUDITORIA ============

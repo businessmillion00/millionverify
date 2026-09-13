@@ -84,7 +84,7 @@ const STEPS = [
   },
   {
     tag: 'Etapa 04',
-    title: 'Monitoramos para sempre',
+    title: 'Monitoramos sem parar',
     body: 'Um job periódico confere se a tag continua viva. Se cair, você sabe antes da sua BM cair junto.',
     visual: (
       <Panel>

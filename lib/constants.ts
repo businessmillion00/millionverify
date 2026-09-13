@@ -1,6 +1,24 @@
 /** 1 token = 1 site publicado. */
 export const TOKENS_PER_SITE = 1;
 
+/**
+ * Sites vivos ao mesmo tempo por conta. É o teto que `createSite` aplica; as
+ * telas só espelham o número.
+ */
+export const MAX_SITES_PER_USER = 30;
+
+/**
+ * Vida útil de um site. A verificação da Meta é feita uma vez; confirmada, a
+ * página não precisa continuar no ar — e um teto de 30 sites só é viável se os
+ * antigos liberarem espaço sozinhos. Passado o prazo o site some das consultas
+ * e a rotina de expiração (app/api/cron/expire-sites) o exclui.
+ *
+ * O default de `Site.expiresAt` no schema repete os 7 dias, mas só vale para
+ * linhas antigas: toda criação grava esta constante.
+ */
+export const SITE_LIFETIME_DAYS = 7;
+export const SITE_LIFETIME_MS = SITE_LIFETIME_DAYS * 86_400_000;
+
 /** Preço cheio do token, sem desconto. É a régua contra a qual a economia é medida. */
 export const TOKEN_BASE_PRICE = 25;
 
@@ -112,7 +130,7 @@ export function tokenOrder(tokens: number): TokenOrder {
 }
 
 export const SITE_RATE_LIMITS = {
-  CREATE: 5, // máximo de sites por dia
+  CREATE: MAX_SITES_PER_USER, // máximo de sites por dia
   CHECK_CNPJ: 50, // máximo de verificações de CNPJ por dia
   CHECK_META_TAG: 100, // máximo de checks de meta tag por dia
 } as const;

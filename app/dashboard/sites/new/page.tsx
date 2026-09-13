@@ -2,13 +2,16 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
+import {
+  MAX_SITES_PER_USER,
+  SITE_LIFETIME_DAYS,
+  TOKENS_PER_SITE,
+  tokenLabel,
+} from '@/lib/constants';
+import { activeSiteWhere } from '@/lib/site/lifetime';
 import { Wizard } from '@/components/site-builder/wizard';
 
 export const dynamic = 'force-dynamic';
-
-/** Espelha o teto que createSite aplica no servidor (app/actions/site.ts). */
-const MAX_SITES = 5;
 
 export default async function NewSitePage() {
   const session = await auth();
@@ -24,10 +27,10 @@ export default async function NewSitePage() {
       where: { id: userId },
       select: { tokenBalance: true },
     }),
-    prisma.site.count({ where: { userId, isDeleted: false } }),
+    prisma.site.count({ where: { userId, ...activeSiteWhere() } }),
   ]);
 
-  const reachedLimit = sitesCount >= MAX_SITES;
+  const reachedLimit = sitesCount >= MAX_SITES_PER_USER;
   const hasBalance = user.tokenBalance >= TOKENS_PER_SITE;
 
   return (
@@ -43,8 +46,8 @@ export default async function NewSitePage() {
             Três passos: CNPJ, identidade e revisão. A publicação custa{' '}
             <span className="text-gradient font-medium tabular-nums">
               {tokenLabel(TOKENS_PER_SITE)}
-            </span>
-            .
+            </span>{' '}
+            e o site fica no ar por {SITE_LIFETIME_DAYS} dias.
           </p>
         </div>
 
@@ -55,7 +58,7 @@ export default async function NewSitePage() {
           </span>
           <span className="mx-2 text-dark-700">·</span>
           <span className="tabular-nums">
-            {sitesCount}/{MAX_SITES} sites
+            {sitesCount}/{MAX_SITES_PER_USER} sites
           </span>
         </p>
       </div>
@@ -64,11 +67,12 @@ export default async function NewSitePage() {
         <div className="card mt-10 max-w-2xl">
           <span className="badge badge-warning">Limite atingido</span>
           <h2 className="mt-4 text-xl font-semibold">
-            Você já tem {MAX_SITES} sites publicados
+            Você já tem {MAX_SITES_PER_USER} sites no ar
           </h2>
           <p className="mt-2 text-sm text-dark-400">
-            Cada conta pode manter até {MAX_SITES} sites. Exclua um site existente
-            para liberar espaço e criar outro.
+            Cada conta mantém até {MAX_SITES_PER_USER} sites ao mesmo tempo, e cada
+            site fica no ar por {SITE_LIFETIME_DAYS} dias. Os mais antigos liberam
+            espaço sozinhos ao expirar — ou exclua um site agora para criar outro.
           </p>
           <Link href="/dashboard/sites" className="btn-primary mt-6 inline-flex">
             Gerenciar meus sites
@@ -95,7 +99,7 @@ export default async function NewSitePage() {
         <Wizard
           tokenBalance={user.tokenBalance}
           sitesCount={sitesCount}
-          maxSites={MAX_SITES}
+          maxSites={MAX_SITES_PER_USER}
           tokensPerSite={TOKENS_PER_SITE}
         />
       )}

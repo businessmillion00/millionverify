@@ -21,6 +21,7 @@
  */
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { activeSiteWhere } from '@/lib/site/lifetime';
 import { recordAudit } from '@/lib/security/audit';
 import {
   DIAGNOSE_SITE_SELECT,
@@ -125,7 +126,8 @@ export async function monitorSites(limit: number = MONITOR_BATCH_SIZE): Promise<
   const sites = await prisma.site.findMany({
     where: {
       isPublished: true,
-      isDeleted: false,
+      // Site vencido não entra: já saiu do ar e a rotina de expiração o exclui.
+      ...activeSiteWhere(),
       buildStatus: 'READY',
       metaTag: { not: null },
     },

@@ -2,13 +2,16 @@ import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
+import {
+  MAX_SITES_PER_USER,
+  SITE_LIFETIME_DAYS,
+  TOKENS_PER_SITE,
+  tokenLabel,
+} from '@/lib/constants';
+import { activeSiteWhere, isExpiringSoon } from '@/lib/site/lifetime';
 import { siteHost } from '@/lib/subdomain';
 
 export const dynamic = 'force-dynamic';
-
-/** Espelha o teto aplicado por createSite (app/actions/site.ts) — o servidor continua sendo a autoridade. */
-const MAX_SITES = 5;
 
 const STATUS_FILTERS = [
   { value: 'todos', label: 'Todos' },
@@ -76,7 +79,7 @@ export default async function DashboardSitesPage({ searchParams }: Props) {
     prisma.site.findMany({
       where: {
         userId,
-        isDeleted: false,
+        ...activeSiteWhere(),
         ...statusWhere(status),
         ...searchWhere(term),
       },
@@ -91,12 +94,13 @@ export default async function DashboardSitesPage({ searchParams }: Props) {
         metaTagVerified: true,
         viewsCount: true,
         createdAt: true,
+        expiresAt: true,
       },
     }),
-    prisma.site.count({ where: { userId, isDeleted: false } }),
+    prisma.site.count({ where: { userId, ...activeSiteWhere() } }),
   ]);
 
-  const reachedLimit = totalSites >= MAX_SITES;
+  const reachedLimit = totalSites >= MAX_SITES_PER_USER;
 
   return (
     <>
@@ -105,14 +109,14 @@ export default async function DashboardSitesPage({ searchParams }: Props) {
           <h1 className="text-3xl font-semibold tracking-tight">Seus sites</h1>
           <p className="mt-2 text-sm text-dark-400">
             <span className="tabular-nums text-white">
-              {totalSites.toLocaleString('pt-BR')}/{MAX_SITES}
+              {totalSites.toLocaleString('pt-BR')}/{MAX_SITES_PER_USER}
             </span>{' '}
-            sites · {tokenLabel(TOKENS_PER_SITE)} por site
+            sites · {tokenLabel(TOKENS_PER_SITE)} por site · {SITE_LIFETIME_DAYS} dias no ar
           </p>
         </div>
 
         {reachedLimit ? (
-          <span className="badge badge-warning">Limite de {MAX_SITES} sites atingido</span>
+          <span className="badge badge-warning">Limite de {MAX_SITES_PER_USER} sites atingido</span>
         ) : (
           <Link href="/dashboard/sites/new" className="btn-primary">
             Criar site
@@ -198,7 +202,10 @@ export default async function DashboardSitesPage({ searchParams }: Props) {
               </div>
 
               <p className="mt-2 text-xs text-dark-500">
-                Criado em {site.createdAt.toLocaleDateString('pt-BR')}
+                Criado em {site.createdAt.toLocaleDateString('pt-BR')} · Expira em{' '}
+                <span className={isExpiringSoon(site.expiresAt) ? 'text-amber-400' : undefined}>
+                  {site.expiresAt.toLocaleDateString('pt-BR')}
+                </span>
               </p>
             </Link>
           ))}

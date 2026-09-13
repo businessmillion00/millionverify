@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { formatCNPJ } from '@/lib/utils';
 import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
 import { siteHost, siteUrl } from '@/lib/subdomain';
+import { activeSiteWhere, isExpiringSoon } from '@/lib/site/lifetime';
 import {
   deleteSiteForm,
   setSitePublishedForm,
@@ -76,8 +77,9 @@ export default async function SiteManagePage({ params, searchParams }: Props) {
   const errorMessage = first(feedback.erro);
 
   // A busca é sempre amarrada ao dono: um id de outro usuário responde 404.
+  // Site vencido também: ele já sumiu da lista e vai ser excluído pela rotina.
   const site = await prisma.site.findFirst({
-    where: { id, userId: session!.user.id, isDeleted: false },
+    where: { id, userId: session!.user.id, ...activeSiteWhere() },
   });
 
   if (!site) notFound();
@@ -101,7 +103,11 @@ export default async function SiteManagePage({ params, searchParams }: Props) {
             <span className="tabular-nums">{formatCNPJ(site.cnpj)}</span>
           </p>
           <p className="mt-1 text-xs text-dark-500">
-            Criado em {site.createdAt.toLocaleDateString('pt-BR')} ·{' '}
+            Criado em {site.createdAt.toLocaleDateString('pt-BR')} · Expira em{' '}
+            <span className={isExpiringSoon(site.expiresAt) ? 'text-amber-400' : undefined}>
+              {site.expiresAt.toLocaleDateString('pt-BR')}
+            </span>{' '}
+            ·{' '}
             <span className="tabular-nums">
               {site.viewsCount.toLocaleString('pt-BR')}
             </span>{' '}

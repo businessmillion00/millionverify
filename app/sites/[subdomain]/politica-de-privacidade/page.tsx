@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { prisma } from '@/lib/prisma';
+import { activeSiteWhere } from '@/lib/site/lifetime';
 import { siteHost } from '@/lib/subdomain';
 import { formatCNPJ } from '@/lib/utils';
 import {
@@ -22,7 +23,7 @@ type Props = { params: Promise<{ subdomain: string }> };
 /** Deduplica a consulta entre generateMetadata e o componente da página. */
 const getSite = cache(async (subdomain: string) =>
   prisma.site.findFirst({
-    where: { subdomain, isPublished: true, isDeleted: false },
+    where: { subdomain, isPublished: true, ...activeSiteWhere() },
     select: {
       name: true,
       companyName: true,

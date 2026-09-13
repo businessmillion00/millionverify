@@ -21,6 +21,10 @@ type Props = {
   metaTagVerified: boolean;
   /** Rótulo relativo pronto do servidor — formatar no cliente divergiria na hidratação. */
   createdAtLabel: string;
+  /** "em 6 dias" — pronto do servidor pelo mesmo motivo. */
+  expiresAtLabel: string;
+  /** Falta menos de um dia: o prazo ganha destaque. Decidido no servidor. */
+  expiringSoon: boolean;
   /**
    * Site novo o suficiente para o certificado do subdomínio ainda estar sendo
    * emitido. Decidido no servidor: comparar datas no cliente divergiria na
@@ -40,6 +44,8 @@ export function SiteCard({
   viewsCount,
   metaTagVerified,
   createdAtLabel,
+  expiresAtLabel,
+  expiringSoon,
   verificarEndereco,
 }: Props) {
   const reduced = useReducedMotion();
@@ -231,6 +237,12 @@ export function SiteCard({
             {isPublished ? 'Publicado' : 'Rascunho'}
           </span>
           <p className="mt-2 text-xs text-dark-500">Criado {createdAtLabel}</p>
+          <p
+            title="Sites não são permanentes: ao fim do prazo a página sai do ar e é excluída."
+            className={`mt-0.5 text-xs ${expiringSoon ? 'text-amber-400' : 'text-dark-500'}`}
+          >
+            Expira {expiresAtLabel}
+          </p>
         </div>
       </div>
     </motion.article>

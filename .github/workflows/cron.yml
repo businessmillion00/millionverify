@@ -20,7 +20,7 @@ on:
   schedule:
     # Reconciliação de pagamentos: a rota pede 5–15 min.
     - cron: '*/10 * * * *'
-    # Reverificação das meta tags: a rota pede 15–60 min.
+    # Reverificação das meta tags e expiração de sites: as rotas pedem 15–60 min.
     - cron: '*/30 * * * *'
   # Permite disparar manualmente pela aba Actions, útil para testar.
   workflow_dispatch:
@@ -62,5 +62,26 @@ jobs:
 
           if [ "$codigo" != "200" ]; then
             echo "::error::Verificação respondeu $codigo"
+            exit 1
+          fi
+
+  excluir-sites-expirados:
+    # Mesma volta de 30 min. O site vencido já some das consultas na hora certa
+    # (lib/site/lifetime.ts); esta rotina só faz a limpeza: marca a exclusão,
+    # registra a auditoria e devolve o subdomínio à Vercel.
+    if: github.event.schedule != '*/10 * * * *'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Excluir sites expirados
+        run: |
+          codigo=$(curl -sS -o /tmp/saida -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL || 'https://millionverify-d1lr.vercel.app' }}/api/cron/expire-sites")
+
+          echo "HTTP $codigo"
+          cat /tmp/saida
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Expiração respondeu $codigo"
             exit 1
           fi

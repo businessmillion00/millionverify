@@ -28,6 +28,7 @@ const ACOES: Record<string, string> = {
   PAYMENT_RECEIVED: 'Pagamento confirmado',
   ADMIN_ADJUST_BALANCE: 'Ajuste de saldo',
   ADMIN_SET_ROLE: 'Alteração de nível',
+  SITE_EXPIRED: 'Site expirado',
   SEED_EXECUTED: 'Carga inicial',
 };
 

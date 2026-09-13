@@ -5,7 +5,8 @@ import { CreateSiteSchema } from '@/lib/validators/site';
 import { auth } from '@/lib/auth';
 import { brasilAPIService } from '@/services/brasil-api';
 import { enqueueSiteBuild } from '@/lib/site/provision';
-import { APP_CONFIG, TOKENS_PER_SITE } from '@/lib/constants';
+import { APP_CONFIG, MAX_SITES_PER_USER, TOKENS_PER_SITE } from '@/lib/constants';
+import { activeSiteWhere, siteExpiresAt } from '@/lib/site/lifetime';
 
 /*
  * Cobrança da criação. Vem da constante compartilhada: um valor próprio aqui
@@ -55,13 +56,17 @@ export async function createSite(input: unknown) {
       return { success: false, error: 'Este subdomínio já está em uso' };
     }
 
-    // Verificar limite de sites por usuário (máx 5)
+    // Limite de sites VIVOS por usuário: os expirados não contam, mesmo que a
+    // rotina de exclusão ainda não tenha passado por eles.
     const userSitesCount = await prisma.site.count({
-      where: { userId: user.id, isDeleted: false },
+      where: { userId: user.id, ...activeSiteWhere() },
     });
 
-    if (userSitesCount >= 5) {
-      return { success: false, error: 'Limite de sites atingido (máx. 5)' };
+    if (userSitesCount >= MAX_SITES_PER_USER) {
+      return {
+        success: false,
+        error: `Limite de sites atingido (máx. ${MAX_SITES_PER_USER})`,
+      };
     }
 
     // Tentar consultar CNPJ real
@@ -72,6 +77,9 @@ export async function createSite(input: unknown) {
       console.warn('Erro ao consultar CNPJ em BrasilAPI:', error);
       // Continuar mesmo se falhar
     }
+
+    // Prazo de vida: o site sai do ar e é excluído quando vencer.
+    const expiresAt = siteExpiresAt();
 
     // Usar transação para criar site e descontar tokens
     const result = await prisma.$transaction(async (tx) => {
@@ -105,6 +113,7 @@ export async function createSite(input: unknown) {
            */
           phone: phone?.replace(/\D/g, '') || null,
           isPublished: true,
+          expiresAt,
           theme: {
             bgColor: '#121212',
             accentColor: '#F59E0B',
@@ -144,6 +153,7 @@ export async function createSite(input: unknown) {
             name,
             subdomain,
             tokensUsed: TOKENS_PER_SITE_CREATION,
+            expiresAt: expiresAt.toISOString(),
           },
           status: 'success',
         },
@@ -195,7 +205,7 @@ export async function getSitesByUser() {
     const sites = await prisma.site.findMany({
       where: {
         userId: session.user.id,
-        isDeleted: false,
+        ...activeSiteWhere(),
       },
       select: {
         id: true,
@@ -206,6 +216,7 @@ export async function getSitesByUser() {
         viewsCount: true,
         metaTagVerified: true,
         createdAt: true,
+        expiresAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });
