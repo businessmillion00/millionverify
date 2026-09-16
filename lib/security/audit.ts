@@ -29,10 +29,18 @@ export type KnownAuditAction =
   | 'ACCOUNT_DEACTIVATED'
   | 'ADMIN_ADJUST_BALANCE'
   | 'ADMIN_SET_ROLE'
-  | 'SEED_EXECUTED';
+  | 'SEED_EXECUTED'
+  | 'SMS_ACTIVATION_REQUESTED'
+  | 'SMS_ACTIVATION_COMPLETED'
+  | 'SMS_ACTIVATION_CANCELLED'
+  | 'SMS_ACTIVATION_EXPIRED'
+  | 'SMS_ACTIVATION_FAILED'
+  | 'SMS_ACTIVATION_RETRY'
+  | 'SMS_CODE_RECEIVED'
+  | 'TOKENS_CONVERTED_TO_SMS';
 
 export type AuditAction = KnownAuditAction | (string & Record<never, never>);
-export type AuditResource = 'payment' | 'site' | 'user' | 'system';
+export type AuditResource = 'payment' | 'site' | 'user' | 'system' | 'sms';
 export type AuditStatus = 'success' | 'error';
 
 export interface RequestContext {

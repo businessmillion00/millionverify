@@ -3,6 +3,9 @@ import { eachDayOfInterval, format, startOfDay, subDays } from 'date-fns';
 import { getRevenueOverview } from '@/app/actions/admin';
 import { prisma } from '@/lib/prisma';
 import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
+import { SMS_PROVIDER_LOW_BALANCE, SMS_SERVICES } from '@/lib/sms/catalog';
+import { getSmsProviderBalance } from '@/lib/sms/stock';
+import { formatCurrency } from '@/lib/utils';
 import { PageHeader } from '@/components/dashboard/page-header';
 import { StatTile } from '@/components/admin/stat-tile';
 import { RevenueChart, type PontoFaturamento } from '@/components/admin/revenue-chart';
@@ -12,11 +15,26 @@ export const dynamic = 'force-dynamic';
 
 const JANELA_DIAS = 30;
 
+/**
+ * Card estático para quando o saldo do sms24h não pôde ser lido. Sem número
+ * não há count-up, e um StatTile com zero mentiria: zero é "acabou o saldo",
+ * não "não sei".
+ */
+function ProviderUnavailableTile({ label, hint }: { label: string; hint: string }) {
+  return (
+    <div className="relative overflow-hidden rounded-xl border border-red-500/40 bg-white/[0.02] p-6">
+      <p className="text-xs uppercase tracking-widest text-dark-500">{label}</p>
+      <p className="mt-3 text-3xl font-semibold text-red-400">—</p>
+      <p className="mt-1.5 text-xs text-red-400/80">{hint}</p>
+    </div>
+  );
+}
+
 export default async function AdminDashboard() {
   const hoje = startOfDay(new Date());
   const desde = subDays(hoje, JANELA_DIAS - 1);
 
-  const [stats, logs, pagamentos] = await Promise.all([
+  const [stats, logs, pagamentos, provedor] = await Promise.all([
     getRevenueOverview(),
     prisma.auditLog.findMany({
       take: 40,
@@ -40,7 +58,16 @@ export default async function AdminDashboard() {
       select: { amount: true, tokensGranted: true, paidAt: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     }),
+    getSmsProviderBalance(),
   ]);
+
+  // O saldo no sms24h é o estoque de números: cada venda desconta dali, e
+  // zerado toda venda falha em silêncio. O custo de referência do WhatsApp dá
+  // a régua mais conservadora de quantos números ainda cabem.
+  const custoWhatsApp = SMS_SERVICES.WHATSAPP.referenceCostCents / 100;
+  const numerosWhatsApp =
+    provedor.state === 'ok' ? Math.floor(provedor.balance / custoWhatsApp) : 0;
+  const saldoBaixo = provedor.state === 'ok' && provedor.balance < SMS_PROVIDER_LOW_BALANCE;
 
   const baldes = new Map<string, { valor: number; tokens: number }>();
   for (const dia of eachDayOfInterval({ start: desde, end: hoje })) {
@@ -119,6 +146,29 @@ export default async function AdminDashboard() {
           hint={`${stats.totalSites.toLocaleString('pt-BR')} sites ativos`}
           delay={0.3}
         />
+        {provedor.state === 'ok' ? (
+          <StatTile
+            label="Saldo no sms24h"
+            value={provedor.balance}
+            format="currency"
+            hint={
+              saldoBaixo
+                ? `Abaixo de ${formatCurrency(SMS_PROVIDER_LOW_BALANCE)} — recarregue antes que as vendas de número parem`
+                : `≈ ${numerosWhatsApp.toLocaleString('pt-BR')} números de WhatsApp a ${formatCurrency(custoWhatsApp)}`
+            }
+            tone={saldoBaixo ? 'warning' : 'default'}
+            delay={0.36}
+          />
+        ) : (
+          <ProviderUnavailableTile
+            label="Saldo no sms24h"
+            hint={
+              provedor.state === 'unconfigured'
+                ? 'SMS24H_API_KEY não configurada — vendas de número desligadas'
+                : `Sem resposta do provedor: ${provedor.message}`
+            }
+          />
+        )}
       </div>
 
       <div className="mt-8">

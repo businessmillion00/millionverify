@@ -23,6 +23,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/dashboard': 'Visão geral',
   '/dashboard/sites': 'Meus sites',
   '/dashboard/sites/new': 'Novo site',
+  '/dashboard/sms': 'Números SMS',
   '/dashboard/tokens': 'Tokens',
   '/dashboard/billing': 'Faturamento',
   '/admin': 'Master Control',
@@ -32,6 +33,7 @@ const ROUTE_LABELS: Record<string, string> = {
 /** Rotas dinâmicas: o último segmento é um id e não serve de rótulo. */
 const ROUTE_PREFIX_LABELS: Array<[string, string]> = [
   ['/dashboard/sites/', 'Detalhes do site'],
+  ['/dashboard/sms/', 'Ativação de SMS'],
   ['/dashboard/billing/', 'Pagamento'],
 ];
 

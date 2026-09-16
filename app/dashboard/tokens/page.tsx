@@ -79,7 +79,8 @@ export default async function TokensPage() {
 
   const userId = session.user.id;
 
-  const [user, movimentacoes, pagamentos, entradas, saidas, investido] = await Promise.all([
+  const [user, movimentacoes, pagamentos, entradas, saidas, convertidos, investido] =
+    await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
       select: { tokenBalance: true },
@@ -119,6 +120,11 @@ export default async function TokensPage() {
       where: { userId, type: 'USAGE' },
       _sum: { amount: true },
     }),
+    // Tokens de site trocados por tokens de SMS (/dashboard/sms).
+    prisma.tokenTransaction.aggregate({
+      where: { userId, type: 'CONVERSION' },
+      _sum: { amount: true },
+    }),
     prisma.payment.aggregate({
       where: { userId, status: 'CONFIRMED' },
       _sum: { amount: true },
@@ -146,7 +152,9 @@ export default async function TokensPage() {
 
   const historico = movimentacoes.slice(0, 20).map((mov) => mov.balanceAfter).reverse();
   const creditados = entradas._sum.amount ?? 0;
-  const consumidos = saidas._sum.amount ?? 0;
+  const usados = saidas._sum.amount ?? 0;
+  const convertidosEmSms = convertidos._sum.amount ?? 0;
+  const consumidos = usados + convertidosEmSms;
   const emAberto = pagamentos.find((pagamento) => pagamento.status === 'PENDING');
 
   return (
@@ -179,7 +187,11 @@ export default async function TokensPage() {
             <Resumo
               label="Consumidos"
               value={`−${consumidos.toLocaleString('pt-BR')}`}
-              hint={`${Math.floor(consumidos / TOKENS_PER_SITE).toLocaleString('pt-BR')} sites publicados`}
+              hint={
+                convertidosEmSms > 0
+                  ? `${Math.floor(usados / TOKENS_PER_SITE).toLocaleString('pt-BR')} sites publicados · ${convertidosEmSms.toLocaleString('pt-BR')} convertidos em SMS`
+                  : `${Math.floor(usados / TOKENS_PER_SITE).toLocaleString('pt-BR')} sites publicados`
+              }
               tone="text-red-400"
             />
             <Resumo

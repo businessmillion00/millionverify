@@ -45,6 +45,25 @@ jobs:
             exit 1
           fi
 
+  varrer-ativacoes-sms:
+    # Mesma volta de 10 min da reconciliação: vence números sem SMS (devolvendo
+    # o valor), fecha reservas obsoletas e recupera códigos de quem fechou a aba.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Varrer ativações de SMS
+        run: |
+          codigo=$(curl -sS -o /tmp/saida -w '%{http_code}' \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ vars.APP_URL || 'https://millionverify-d1lr.vercel.app' }}/api/cron/sms-activations")
+
+          echo "HTTP $codigo"
+          cat /tmp/saida
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Varredura de SMS respondeu $codigo"
+            exit 1
+          fi
+
   verificar-meta-tags:
     # Só na volta de 30 min: o GitHub dispara o job em toda expressão agendada,
     # então sem este filtro a verificação rodaria junto com a de 10 min.

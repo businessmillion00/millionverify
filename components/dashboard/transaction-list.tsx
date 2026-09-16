@@ -59,6 +59,14 @@ const TYPE_META: Record<TokenTransactionType, TypeMeta> = {
     chip: 'bg-blue-500/12 text-blue-400 ring-blue-500/20',
     glyph: 'M4.5 10.5h11a4.5 4.5 0 010 9H9M4.5 10.5l4-4M4.5 10.5l4 4',
   },
+  // Tokens de site trocados por tokens de SMS: sai do saldo, mas não é um site.
+  CONVERSION: {
+    label: 'Conversão em SMS',
+    debit: true,
+    tone: 'text-violet-400',
+    chip: 'bg-violet-500/12 text-violet-400 ring-violet-500/20',
+    glyph: 'M4 8h13M13 4l4 4-4 4M20 16H7M11 12l-4 4 4 4',
+  },
 };
 
 export const PAYMENT_STATUS_LABEL: Record<

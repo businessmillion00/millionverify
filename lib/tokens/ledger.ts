@@ -617,7 +617,9 @@ async function recordMovement(
  * então duas requisições simultâneas nunca conseguem gastar o mesmo token.
  */
 export async function debitTokens(
-  params: ManualMovementParams & { type?: Extract<TokenTransactionType, 'USAGE' | 'REFUND'> },
+  params: ManualMovementParams & {
+    type?: Extract<TokenTransactionType, 'USAGE' | 'REFUND' | 'CONVERSION'>;
+  },
 ): Promise<BalanceResult> {
   return recordMovement({ ...params, type: params.type ?? 'USAGE' });
 }

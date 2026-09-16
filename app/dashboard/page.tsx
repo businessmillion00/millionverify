@@ -117,8 +117,9 @@ export default async function DashboardPage() {
       where: { userId, type: { in: ['PURCHASE', 'BONUS', 'REFUND'] } },
       _sum: { amount: true },
     }),
+    // Saídas: sites publicados e tokens convertidos em tokens de SMS.
     prisma.tokenTransaction.aggregate({
-      where: { userId, type: 'USAGE' },
+      where: { userId, type: { in: ['USAGE', 'CONVERSION'] } },
       _sum: { amount: true },
     }),
   ]);

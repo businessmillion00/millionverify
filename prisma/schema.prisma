@@ -34,6 +34,12 @@ model User {
   tokenBalance          Int       @default(0)
   monthlyTokenLimit     Int       @default(100)
 
+  // Tokens de SMS, em CENTAVOS de token (100 = 1 token SMS = R$ 1). Inteiro
+  // de propósito: os preços têm meio token (Instagram custa 1,5) e Float
+  // acumularia erro na comparação `>=` da trava de débito. Só entra por
+  // conversão de tokens de site (lib/sms/conversion.ts), nunca por PIX.
+  smsBalanceCents       Int       @default(0)
+
   // Status
   isActive              Boolean   @default(true)
   isVerified            Boolean   @default(false)
@@ -52,6 +58,8 @@ model User {
   auditLogs             AuditLog[]
   notificationSettings  NotificationSettings?
   affiliateStats        AffiliateStats?
+  smsActivations        SmsActivation[]
+  smsWalletTransactions SmsWalletTransaction[]
 
   @@index([email])
   @@index([asaasCustomerId])
@@ -150,6 +158,88 @@ model Payment {
   @@index([userId])
   @@index([asaasPaymentId])
   @@index([status])
+  @@index([createdAt])
+}
+
+// ============ NUMEROS PARA SMS (revenda do sms24h) ============
+
+/// Movimento dos tokens de SMS. Mesmas regras do TokenTransaction:
+/// `amountCents` é SEMPRE positivo e a direção vem do `type`
+/// (CONVERSION/REFUND creditam, PURCHASE debita).
+model SmsWalletTransaction {
+  id                  String                    @id @default(cuid())
+  userId              String
+  user                User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type                SmsWalletTransactionType
+  amountCents         Int
+  description         String
+
+  // Compra de número (PURCHASE) ou devolução (REFUND): a ativação de origem.
+  // CONVERSION não tem origem aqui: o lado dos tokens de site fica no
+  // TokenTransaction do mesmo instante, com type CONVERSION.
+  activationId        String?
+  activation          SmsActivation?            @relation(fields: [activationId], references: [id])
+
+  balanceBeforeCents  Int
+  balanceAfterCents   Int
+
+  metadata            Json?
+  createdAt           DateTime                  @default(now())
+
+  @@index([userId])
+  @@index([activationId])
+  @@index([createdAt])
+}
+
+/// Um número alugado no sms24h para receber o SMS de um serviço.
+///
+/// Ciclo: REQUESTING (saldo já debitado, número ainda não pedido ao provedor)
+/// → WAITING_CODE → CODE_RECEIVED → COMPLETED. Sai por CANCELLED (o usuário
+/// desistiu), EXPIRED (o prazo venceu sem SMS) ou FAILED (o provedor não
+/// entregou número). Sem código recebido, o valor volta para a carteira e
+/// `refundedCents` registra quanto — é a trava que impede devolver duas vezes.
+model SmsActivation {
+  id                    String               @id @default(cuid())
+  userId                String
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  service               SmsService
+  status                SmsActivationStatus  @default(REQUESTING)
+
+  // Id da ativação no sms24h. Nulo enquanto REQUESTING; único depois.
+  providerActivationId  String?              @unique
+  // Número com DDI, como o provedor devolve (ex.: 5543999999999).
+  phone                 String?
+
+  // Preço cobrado do usuário e custo pago ao provedor (quando conhecido), em centavos.
+  priceCents            Int
+  costCents             Int?
+  refundedCents         Int                  @default(0)
+
+  // Último código recebido. Um "pedir outro SMS" sobrescreve.
+  code                  String?
+  codeReceivedAt        DateTime?
+  retryCount            Int                  @default(0)
+
+  // Prazo para o SMS chegar. Vencido sem código, o número é cancelado e o
+  // valor devolvido (lib/sms/activation.ts).
+  expiresAt             DateTime
+  lastCheckedAt         DateTime?
+  completedAt           DateTime?
+  cancelledAt           DateTime?
+
+  errorLog              String?              @db.Text
+  metadata              Json?
+
+  walletTransactions    SmsWalletTransaction[]
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([status, expiresAt])
   @@index([createdAt])
 }
 
@@ -305,6 +395,9 @@ enum TokenTransactionType {
   REFUND
   BONUS
   USAGE
+  // Tokens de site trocados por tokens de SMS (débito). Tipo próprio para o
+  // extrato não confundir a troca com um site publicado.
+  CONVERSION
 }
 
 enum PaymentStatus {
@@ -312,6 +405,30 @@ enum PaymentStatus {
   CONFIRMED
   FAILED
   REFUNDED
+}
+
+enum SmsService {
+  FACEBOOK
+  WHATSAPP
+  TELEGRAM
+  INSTAGRAM
+  GOOGLE
+}
+
+enum SmsActivationStatus {
+  REQUESTING
+  WAITING_CODE
+  CODE_RECEIVED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  FAILED
+}
+
+enum SmsWalletTransactionType {
+  CONVERSION
+  PURCHASE
+  REFUND
 }
 
 enum SiteBuildStatus {

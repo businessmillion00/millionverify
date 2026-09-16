@@ -99,6 +99,7 @@ const NAV: Record<SidebarVariant, NavItem[]> = {
   user: [
     { href: '/dashboard', label: 'Visão geral', icon: ICONS.grid, exact: true },
     { href: '/dashboard/sites', label: 'Meus sites', icon: ICONS.globe },
+    { href: '/dashboard/sms', label: 'Números SMS', icon: ICONS.message },
     { href: '/dashboard/tokens', label: 'Tokens', icon: ICONS.coins },
     { href: '/dashboard/billing', label: 'Faturamento', icon: ICONS.card },
   ],

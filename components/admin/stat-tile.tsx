@@ -5,6 +5,7 @@ import gsap from 'gsap';
 import { formatCurrency } from '@/lib/utils';
 
 type Formato = 'currency' | 'integer';
+type Tom = 'default' | 'warning';
 
 type Props = {
   label: string;
@@ -14,6 +15,8 @@ type Props = {
   hint?: string;
   /** Atraso de entrada em segundos — escalona a grade de tiles. */
   delay?: number;
+  /** `warning` pinta o número e a borda em âmbar — para saldo baixo, fila parada etc. */
+  tone?: Tom;
 };
 
 const formatar = (valor: number, formato: Formato) =>
@@ -27,6 +30,7 @@ export function StatTile({
   format = 'integer',
   hint,
   delay = 0,
+  tone = 'default',
 }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const numero = useRef<HTMLSpanElement>(null);
@@ -107,7 +111,9 @@ export function StatTile({
     <div
       ref={root}
       data-stat
-      className="group relative overflow-hidden rounded-xl border border-dark-700 bg-white/[0.02] p-6 transition-colors duration-300 hover:border-amber-500/40"
+      className={`group relative overflow-hidden rounded-xl border bg-white/[0.02] p-6 transition-colors duration-300 hover:border-amber-500/40 ${
+        tone === 'warning' ? 'border-amber-500/50' : 'border-dark-700'
+      }`}
     >
       <div
         data-halo
@@ -119,11 +125,23 @@ export function StatTile({
         {label}
       </p>
 
-      <p className="text-gradient relative mt-3 text-3xl font-semibold tabular-nums">
+      <p
+        className={`relative mt-3 text-3xl font-semibold tabular-nums ${
+          tone === 'warning' ? 'text-amber-400' : 'text-gradient'
+        }`}
+      >
         <span ref={numero}>{formatar(value, format)}</span>
       </p>
 
-      {hint && <p className="relative mt-1.5 text-xs text-dark-500">{hint}</p>}
+      {hint && (
+        <p
+          className={`relative mt-1.5 text-xs ${
+            tone === 'warning' ? 'text-amber-400/80' : 'text-dark-500'
+          }`}
+        >
+          {hint}
+        </p>
+      )}
     </div>
   );
 }

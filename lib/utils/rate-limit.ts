@@ -91,6 +91,14 @@ export const RATE_LIMITS = {
   'document_upload': { limit: 20, window: 3_600_000 },
   /** Remoção do comprovante anexado. */
   'document_delete': { limit: 20, window: 3_600_000 },
+  /** Conversão de tokens de site em tokens de SMS. */
+  'sms:convert': { limit: 20, window: 3_600_000 },
+  /** Pedido de número para SMS: cada um prende um número no provedor. */
+  'sms:request': { limit: 20, window: 3_600_000 },
+  /** Polling da ativação de SMS (a cada 5s ⇒ 12/min por aba). */
+  'sms:status': { limit: 120, window: 60_000 },
+  /** Cancelar / concluir / pedir outro SMS. */
+  'sms:manage': { limit: 30, window: 600_000 },
 } as const satisfies Record<string, RateLimitRule>;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;
