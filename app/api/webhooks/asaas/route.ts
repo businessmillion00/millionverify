@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { asaasService } from '@/services/asaas';
 import { rateLimit, getClientIp } from '@/lib/utils/rate-limit';
-import { AsaasWebhookSchema } from '@/lib/validators/payment';
+import { AsaasWebhookSchema, webhookPayment } from '@/lib/validators/payment';
 import {
   creditPaymentTokens,
   failPendingPayment,
@@ -34,19 +33,6 @@ const REFUND_EVENTS = new Set([
 ]);
 
 const FAIL_EVENTS = new Set(['PAYMENT_OVERDUE', 'PAYMENT_DELETED', 'PAYMENT_EXPIRED']);
-
-/**
- * O enum de `data.status` em lib/validators/payment.ts cobre só seis valores.
- * Eventos legítimos (chargeback, análise de risco, recebido em dinheiro) chegam
- * com outros e reprová-los com 400 faria o Asaas reentregar para sempre — e
- * suspender a fila inteira depois de N falhas. Reaproveitamos o schema
- * compartilhado e afrouxamos apenas esse campo.
- */
-const WebhookPayloadSchema = AsaasWebhookSchema.extend({
-  data: AsaasWebhookSchema.shape.data.extend({
-    status: z.string().min(1),
-  }),
-});
 
 /**
  * `createPayment` grava o `Payment.id` em `externalReference`. Se o processo
@@ -91,14 +77,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    const parsed = WebhookPayloadSchema.safeParse(await request.json());
+    const parsed = AsaasWebhookSchema.safeParse(await request.json());
 
     if (!parsed.success) {
       console.warn('Webhook validation failed:', parsed.error);
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    const { event, data } = parsed.data;
+    const { event } = parsed.data;
+    // A cobrança vem em `payment` (formato do Asaas); `data` é o formato antigo.
+    const data = webhookPayment(parsed.data);
 
     if (
       !CREDIT_EVENTS.has(event) &&
@@ -109,7 +97,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    const payment = await findPayment(data.id, data.externalReference);
+    const payment = await findPayment(data.id, data.externalReference ?? undefined);
 
     if (!payment) {
       // 200 proposital: um id que não existe aqui nunca vai passar a existir, e
