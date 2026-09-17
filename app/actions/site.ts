@@ -7,6 +7,7 @@ import { brasilAPIService } from '@/services/brasil-api';
 import { enqueueSiteBuild } from '@/lib/site/provision';
 import { APP_CONFIG, MAX_SITES_PER_USER, TOKENS_PER_SITE } from '@/lib/constants';
 import { activeSiteWhere, siteExpiresAt } from '@/lib/site/lifetime';
+import { debitTokens, isLedgerError, lockUser } from '@/lib/tokens/ledger';
 
 /*
  * Cobrança da criação. Vem da constante compartilhada: um valor próprio aqui
@@ -39,7 +40,11 @@ export async function createSite(input: unknown) {
       return { success: false, error: 'Usuário não encontrado' };
     }
 
-    // Verificar saldo de tokens
+    if (!user.isActive) {
+      return { success: false, error: 'Conta desativada.' };
+    }
+
+    // Checagem amigável; a que vale é a trava do razão dentro da transação.
     if (user.tokenBalance < TOKENS_PER_SITE_CREATION) {
       return {
         success: false,
@@ -83,19 +88,13 @@ export async function createSite(input: unknown) {
 
     // Usar transação para criar site e descontar tokens
     const result = await prisma.$transaction(async (tx) => {
-      // Débito condicional: falha se outra requisição concorrente já gastou o saldo.
-      const { count } = await tx.user.updateMany({
-        where: { id: user.id, tokenBalance: { gte: TOKENS_PER_SITE_CREATION } },
-        data: { tokenBalance: { decrement: TOKENS_PER_SITE_CREATION } },
-      });
+      // 0. Trava o usuário ANTES de inserir o site: o insert pega KEY SHARE na
+      //    linha dele e o débito abaixo pede FOR UPDATE — na ordem inversa, duas
+      //    criações simultâneas travam uma à outra (ver lockUser).
+      await lockUser(tx, user.id);
 
-      if (count === 0) {
-        throw new Error('INSUFFICIENT_TOKENS');
-      }
-
-      const newBalance = user.tokenBalance - TOKENS_PER_SITE_CREATION;
-
-      // 2. Criar site
+      // 1. Criar site. O débito vem logo abaixo, na mesma transação: se ele
+      //    falhar por saldo, o site some junto.
       const site = await tx.site.create({
         data: {
           userId: user.id,
@@ -126,20 +125,17 @@ export async function createSite(input: unknown) {
         },
       });
 
-      // 3. Registrar transação de tokens
-      await tx.tokenTransaction.create({
-        data: {
-          userId: user.id,
-          type: 'USAGE',
-          amount: TOKENS_PER_SITE_CREATION,
-          description: `Criação do site: ${name}`,
-          balanceBefore: user.tokenBalance,
-          balanceAfter: newBalance,
-          metadata: {
-            siteId: site.id,
-            subdomain,
-          },
-        },
+      // 2. Débito pelo razão (lib/tokens/ledger.ts): trava a linha do usuário
+      //    e lança INSUFFICIENT_TOKENS se o saldo não cobrir. Antes o débito era
+      //    um updateMany condicional com balanceBefore/After calculados de uma
+      //    leitura feita fora da transação — o saldo nunca ficava errado, mas o
+      //    extrato podia, e a auditoria de integridade acusava divergência.
+      await debitTokens({
+        tx,
+        userId: user.id,
+        amount: TOKENS_PER_SITE_CREATION,
+        description: `Criação do site: ${name}`,
+        metadata: { siteId: site.id, subdomain },
       });
 
       // 4. Registrar auditoria
@@ -186,7 +182,7 @@ export async function createSite(input: unknown) {
       },
     };
   } catch (error) {
-    if (error instanceof Error && error.message === 'INSUFFICIENT_TOKENS') {
+    if (isLedgerError(error, 'INSUFFICIENT_TOKENS')) {
       return { success: false, error: 'Tokens insuficientes' };
     }
     console.error('Erro ao criar site:', error);

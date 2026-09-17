@@ -3,14 +3,16 @@
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/utils/auth-utils';
 import { RegisterSchema } from '@/lib/validators/auth';
-import { rateLimit } from '@/lib/utils/rate-limit';
+import { getClientIp, rateLimitByName } from '@/lib/utils/rate-limit';
 import { SIGNUP_BONUS_TOKENS, tokenLabel } from '@/lib/constants';
 import { asaasService } from '@/services/asaas';
 
 export async function registerUser(input: unknown) {
   try {
-    // Rate limiting
-    const { success } = await rateLimit('register', 5, 3600000); // 5 por hora por IP
+    // Por IP. A chave fixa 'register' de antes era um balde ÚNICO para o site
+    // inteiro: cinco cadastros por hora no total, de quem quer que fosse.
+    const ip = await getClientIp();
+    const { success } = await rateLimitByName('auth:register', ip);
     if (!success) {
       return { success: false, error: 'Muitas tentativas. Tente novamente em 1 hora.' };
     }

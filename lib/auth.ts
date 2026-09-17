@@ -4,6 +4,15 @@ import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from '@/lib/prisma';
 import { LoginSchema } from '@/lib/validators/auth';
 import { verifyPassword } from '@/lib/utils/auth-utils';
+import { getClientIp, rateLimit, rateLimitByName } from '@/lib/utils/rate-limit';
+
+/**
+ * Teto de tentativas de login por IP, além do limite por e-mail do catálogo
+ * (`auth:login`). O bcrypt já torna cada tentativa cara, mas sem teto um
+ * atacante distribui as tentativas por muitos e-mails e ninguém percebe.
+ */
+const LOGIN_IP_LIMIT = 30;
+const LOGIN_IP_WINDOW_MS = 15 * 60 * 1000;
 
 export const config = {
   adapter: PrismaAdapter(prisma),
@@ -69,6 +78,19 @@ export const config = {
           return null;
         }
 
+        // Limites ANTES de tocar no banco: tentativa barrada não custa bcrypt.
+        // A chave por e-mail é normalizada só para o balde; a busca usa o
+        // e-mail como foi cadastrado.
+        const ip = await getClientIp();
+        const [byEmail, byIp] = await Promise.all([
+          rateLimitByName('auth:login', parsed.data.email.trim().toLowerCase()),
+          rateLimit(`auth:login-ip:${ip}`, LOGIN_IP_LIMIT, LOGIN_IP_WINDOW_MS),
+        ]);
+
+        if (!byEmail.success || !byIp.success) {
+          return null;
+        }
+
         const user = await prisma.user.findUnique({
           where: { email: parsed.data.email },
         });
@@ -77,12 +99,14 @@ export const config = {
           return null;
         }
 
+        // Conta desativada (DELETE /api/account) não entra mais. A senha é
+        // conferida mesmo assim para a resposta não revelar o estado da conta.
         const isPasswordValid = await verifyPassword(
           parsed.data.password,
           user.passwordHash,
         );
 
-        if (!isPasswordValid) {
+        if (!isPasswordValid || !user.isActive) {
           return null;
         }
 

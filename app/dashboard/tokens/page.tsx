@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { TOKENS_PER_SITE, tokenLabel } from '@/lib/constants';
+import { SMS_TOKENS_PER_SITE_TOKEN, formatSmsTokens } from '@/lib/sms/catalog';
 import { formatCurrency } from '@/lib/utils';
 import { Reveal } from '@/components/ui/reveal';
 import { PageHeader } from '@/components/dashboard/page-header';
@@ -56,20 +57,34 @@ function Resumo({
   value,
   hint,
   tone,
+  href,
 }: {
   label: string;
   value: string;
   hint: string;
   tone?: string;
+  /** Torna o cartão inteiro clicável. */
+  href?: string;
 }) {
-  return (
-    <div className="rounded-2xl border border-dark-700 bg-white/[0.02] p-5">
+  const className =
+    'block rounded-2xl border border-dark-700 bg-white/[0.02] p-5 transition-colors hover:border-amber-500/40';
+
+  const inner = (
+    <>
       <p className="text-xs uppercase tracking-widest text-dark-500">{label}</p>
       <p className={`mt-3 text-2xl font-semibold tabular-nums ${tone ?? 'text-white'}`}>
         {value}
       </p>
       <p className="mt-1 text-xs text-dark-500">{hint}</p>
-    </div>
+    </>
+  );
+
+  return href ? (
+    <Link href={href} className={className}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={className}>{inner}</div>
   );
 }
 
@@ -83,7 +98,7 @@ export default async function TokensPage() {
     await Promise.all([
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { tokenBalance: true },
+      select: { tokenBalance: true, smsBalanceCents: true },
     }),
     prisma.tokenTransaction.findMany({
       where: { userId },
@@ -177,7 +192,14 @@ export default async function TokensPage() {
             history={historico}
           />
 
-          <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-1">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
+            <Resumo
+              label="Tokens de SMS"
+              value={formatSmsTokens(user.smsBalanceCents)}
+              hint={`1 token de site = ${SMS_TOKENS_PER_SITE_TOKEN} tokens de SMS · converter`}
+              tone="text-gradient"
+              href="/dashboard/sms"
+            />
             <Resumo
               label="Creditados"
               value={`+${creditados.toLocaleString('pt-BR')}`}

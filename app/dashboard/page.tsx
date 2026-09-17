@@ -13,6 +13,7 @@ import {
   tokenLabel,
 } from '@/lib/constants';
 import { isExpiringSoon } from '@/lib/site/lifetime';
+import { SMS_TOKENS_PER_SITE_TOKEN, formatSmsTokens } from '@/lib/sms/catalog';
 
 /** Janela em que o certificado do subdomínio pode ainda não ter sido emitido. */
 const DOMAIN_PROPAGATION_WINDOW_MS = 20 * 60 * 1000;
@@ -58,14 +59,20 @@ function Metric({
   value,
   hint,
   glyph,
+  href,
 }: {
   label: string;
   value: string;
   hint: string;
   glyph: string;
+  /** Torna o cartão inteiro clicável. */
+  href?: string;
 }) {
-  return (
-    <div className="rounded-2xl border border-dark-700 bg-white/[0.02] p-5">
+  const className =
+    'block rounded-2xl border border-dark-700 bg-white/[0.02] p-5 transition-colors hover:border-amber-500/40';
+
+  const inner = (
+    <>
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs uppercase tracking-widest text-dark-500">{label}</p>
         <svg
@@ -84,7 +91,15 @@ function Metric({
 
       <p className="mt-3 text-2xl font-semibold text-white tabular-nums">{value}</p>
       <p className="mt-1 text-xs text-dark-500">{hint}</p>
-    </div>
+    </>
+  );
+
+  return href ? (
+    <Link href={href} className={className}>
+      {inner}
+    </Link>
+  ) : (
+    <div className={className}>{inner}</div>
   );
 }
 
@@ -98,7 +113,7 @@ export default async function DashboardPage() {
     getSitesByUser(),
     prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { name: true, tokenBalance: true },
+      select: { name: true, tokenBalance: true, smsBalanceCents: true },
     }),
     prisma.tokenTransaction.findMany({
       where: { userId },
@@ -178,7 +193,18 @@ export default async function DashboardPage() {
             statementHref="/dashboard/tokens"
           />
 
-          <div className="grid gap-5 sm:grid-cols-3 lg:grid-cols-1">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-1">
+            <Metric
+              label="Tokens de SMS"
+              value={formatSmsTokens(user.smsBalanceCents)}
+              hint={
+                user.smsBalanceCents > 0
+                  ? 'Para números de verificação · ver na área de SMS'
+                  : `1 token de site vira ${SMS_TOKENS_PER_SITE_TOKEN} tokens de SMS`
+              }
+              glyph="M4.5 7A2.5 2.5 0 017 4.5h10A2.5 2.5 0 0119.5 7v6.5A2.5 2.5 0 0117 16h-5.5L7 19.5V16A2.5 2.5 0 014.5 13.5V7zM8.5 8.75h7M8.5 11.75h4"
+              href="/dashboard/sms"
+            />
             <Metric
               label="Sites"
               value={listaSites.length.toLocaleString('pt-BR')}

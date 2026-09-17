@@ -25,8 +25,19 @@ export default async function AdminLayout({
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session.user.id },
-    select: { name: true, email: true, role: true, tokenBalance: true },
+    select: {
+      name: true,
+      email: true,
+      role: true,
+      tokenBalance: true,
+      smsBalanceCents: true,
+      isActive: true,
+    },
   });
+
+  // O papel do JWT acima é só o atalho: a decisão final é com o banco, senão
+  // um admin rebaixado seguiria vendo o painel até a sessão expirar.
+  if (user.role !== 'ADMIN' || !user.isActive) redirect('/dashboard');
 
   return (
     <SidebarProvider>
@@ -51,6 +62,7 @@ export default async function AdminLayout({
               email: user.email,
               role: user.role,
               tokenBalance: user.tokenBalance,
+              smsBalanceCents: user.smsBalanceCents,
             }}
           />
 

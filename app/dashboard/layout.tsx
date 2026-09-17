@@ -24,8 +24,19 @@ export default async function DashboardLayout({
 
   const user = await prisma.user.findUniqueOrThrow({
     where: { id: session.user.id },
-    select: { name: true, email: true, role: true, tokenBalance: true },
+    select: {
+      name: true,
+      email: true,
+      role: true,
+      tokenBalance: true,
+      smsBalanceCents: true,
+      isActive: true,
+    },
   });
+
+  // O JWT vale 30 dias e não sabe que a conta foi desativada. A página de
+  // login não redireciona quem já tem sessão, então não há loop.
+  if (!user.isActive) redirect('/login?erro=conta-desativada');
 
   return (
     <SidebarProvider>
@@ -47,6 +58,7 @@ export default async function DashboardLayout({
               email: user.email,
               role: user.role,
               tokenBalance: user.tokenBalance,
+              smsBalanceCents: user.smsBalanceCents,
             }}
           />
 

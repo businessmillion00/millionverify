@@ -91,6 +91,22 @@ async function lockUserBalance(tx: LedgerClient, userId: string): Promise<number
   return rows.length > 0 ? rows[0].tokenBalance : null;
 }
 
+/**
+ * Trava a linha do usuário sem mexer em saldo algum.
+ *
+ * Para o chamador que precisa INSERIR uma linha com FK para o usuário (site,
+ * ativação de SMS) antes de debitar: o INSERT pega um lock KEY SHARE na linha
+ * referenciada, e o `FOR UPDATE` do débito, logo depois, espera qualquer
+ * KEY SHARE alheio. Duas transações fazendo insert-depois-débito ao mesmo
+ * tempo esperam uma pela outra e o Postgres aborta uma delas ("deadlock
+ * detected"). Travando aqui, primeiro, a segunda transação já para na
+ * porta — antes de inserir — e a ordem dos locks fica igual para todos.
+ * Reentrante: o `FOR UPDATE` do débito, na mesma transação, não bloqueia.
+ */
+export async function lockUser(tx: LedgerClient, userId: string): Promise<void> {
+  await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${userId} FOR UPDATE`;
+}
+
 interface BalanceMovement {
   userId: string;
   type: TokenTransactionType;

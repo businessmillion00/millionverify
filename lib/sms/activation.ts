@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { recordAudit } from '@/lib/security/audit';
 import { isSms24hError, sms24hService, type Sms24hSetStatus } from '@/services/sms24h';
 import { creditSmsWallet, debitSmsWallet, isSmsWalletError } from '@/lib/sms/wallet';
+import { lockUser } from '@/lib/tokens/ledger';
 import {
   SMS_ACTIVATION_TTL_MS,
   SMS_MAX_OPEN_ACTIVATIONS,
@@ -343,17 +344,18 @@ export async function requestActivation(params: {
   // contar como ativação aberta.
   await reclaimStaleRequests(userId);
 
+  const tooManyOpen = (): RequestActivationResult => ({
+    success: false,
+    code: 'TOO_MANY_OPEN',
+    error: `Você já tem ${SMS_MAX_OPEN_ACTIVATIONS} números aguardando SMS. Conclua ou cancele um deles antes de pedir outro.`,
+  });
+
+  // Checagem amigável fora da transação; a que vale é a de dentro.
   const open = await prisma.smsActivation.count({
     where: { userId, status: { in: [...OPEN_STATUSES] } },
   });
 
-  if (open >= SMS_MAX_OPEN_ACTIVATIONS) {
-    return {
-      success: false,
-      code: 'TOO_MANY_OPEN',
-      error: `Você já tem ${SMS_MAX_OPEN_ACTIVATIONS} números aguardando SMS. Conclua ou cancele um deles antes de pedir outro.`,
-    };
-  }
+  if (open >= SMS_MAX_OPEN_ACTIVATIONS) return tooManyOpen();
 
   // 1. Reserva: débito e ativação nascem juntos. Se o débito falhar por saldo,
   //    a transação desfaz a ativação e nada fica para trás.
@@ -361,6 +363,12 @@ export async function requestActivation(params: {
 
   try {
     activationId = await prisma.$transaction(async (tx) => {
+      // Trava o usuário ANTES do insert da ativação: o insert pega KEY SHARE
+      // na linha dele por causa da FK, e o débito logo abaixo pede FOR UPDATE.
+      // Na ordem inversa, compras simultâneas terminavam em "deadlock
+      // detected" no Postgres (ver lockUser em lib/tokens/ledger.ts).
+      await lockUser(tx, userId);
+
       const activation = await tx.smsActivation.create({
         data: {
           userId,
@@ -381,6 +389,17 @@ export async function requestActivation(params: {
         metadata: { service },
       });
 
+      // Teto conferido DEPOIS do débito, que trava a linha do usuário: duas
+      // compras simultâneas passam por aqui em série e a segunda já enxerga a
+      // primeira gravada. A contagem inclui a ativação recém-criada acima.
+      const openNow = await tx.smsActivation.count({
+        where: { userId, status: { in: [...OPEN_STATUSES] } },
+      });
+
+      if (openNow > SMS_MAX_OPEN_ACTIVATIONS) {
+        throw new Error('TOO_MANY_OPEN');
+      }
+
       await recordAudit({
         tx,
         userId,
@@ -399,6 +418,9 @@ export async function requestActivation(params: {
         code: 'INSUFFICIENT_BALANCE',
         error: 'Tokens de SMS insuficientes. Converta tokens de site para continuar.',
       };
+    }
+    if (error instanceof Error && error.message === 'TOO_MANY_OPEN') {
+      return tooManyOpen();
     }
     throw error;
   }

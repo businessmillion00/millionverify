@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { cn } from '@/lib/utils';
+import { formatSmsTokens } from '@/lib/sms/catalog';
 import { ICONS, Icon } from '@/components/dashboard/nav-link';
 import { useSidebar } from '@/components/dashboard/sidebar';
 import { UserMenu } from '@/components/dashboard/user-menu';
@@ -15,6 +16,8 @@ type Props = {
     email: string;
     role?: string;
     tokenBalance: number;
+    /** Tokens de SMS em centavos de token (100 = 1). */
+    smsBalanceCents: number;
   };
 };
 
@@ -55,8 +58,12 @@ function labelFor(pathname: string): string {
 
 const formatTokens = (value: number) => Math.round(value).toLocaleString('pt-BR');
 
-/** Interpola o saldo quando ele muda (compra, ajuste, refresh do router). */
-function useTweenedTokens(value: number) {
+/**
+ * Interpola o saldo quando ele muda (compra, ajuste, refresh do router).
+ * `format` decide o texto: inteiro para tokens de site, até duas casas para
+ * tokens de SMS (que têm meio token).
+ */
+function useTweenedTokens(value: number, format: (value: number) => string) {
   const ref = useRef<HTMLSpanElement>(null);
   const proxy = useRef({ v: value });
 
@@ -65,7 +72,7 @@ function useTweenedTokens(value: number) {
     if (!el) return;
 
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      el.textContent = formatTokens(value);
+      el.textContent = format(value);
       proxy.current.v = value;
       return;
     }
@@ -75,7 +82,7 @@ function useTweenedTokens(value: number) {
       duration: 0.6,
       ease: 'power3.out',
       onUpdate: () => {
-        el.textContent = formatTokens(proxy.current.v);
+        el.textContent = format(proxy.current.v);
       },
     });
 
@@ -84,7 +91,7 @@ function useTweenedTokens(value: number) {
     return () => {
       tween.kill();
     };
-  }, [value]);
+  }, [value, format]);
 
   return ref;
 }
@@ -93,7 +100,8 @@ export function Topbar({ user }: Props) {
   const pathname = usePathname();
   const { setMobileOpen } = useSidebar();
   const [scrolled, setScrolled] = useState(false);
-  const tokensRef = useTweenedTokens(user.tokenBalance);
+  const tokensRef = useTweenedTokens(user.tokenBalance, formatTokens);
+  const smsRef = useTweenedTokens(user.smsBalanceCents, formatSmsTokens);
 
   const isAdminArea = pathname.startsWith('/admin');
 
@@ -151,6 +159,19 @@ export function Topbar({ user }: Props) {
             <span className="tabular-nums">
               <span ref={tokensRef}>{formatTokens(user.tokenBalance)}</span>
               <span className="ml-1 hidden text-amber-400/70 sm:inline">tokens</span>
+            </span>
+          </Link>
+
+          {/* Segundo tipo de token: os de SMS. Mesmo desenho, ícone da área de SMS. */}
+          <Link
+            href="/dashboard/sms"
+            title="Tokens de SMS"
+            className="badge badge-amber gap-2 border border-amber-500/20 transition-colors hover:bg-amber-500/30"
+          >
+            <Icon path={ICONS.message} className="h-4 w-4" />
+            <span className="tabular-nums">
+              <span ref={smsRef}>{formatSmsTokens(user.smsBalanceCents)}</span>
+              <span className="ml-1 hidden text-amber-400/70 sm:inline">SMS</span>
             </span>
           </Link>
 

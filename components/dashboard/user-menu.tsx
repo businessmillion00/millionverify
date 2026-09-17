@@ -198,6 +198,17 @@ export function UserMenu({ name, email, role }: Props) {
                 Tokens
               </Link>
 
+              <Link
+                href="/dashboard/sms"
+                role="menuitem"
+                data-menu-item
+                onClick={() => close()}
+                className={ITEM_CLASS}
+              >
+                <Icon path={ICONS.message} className="h-4 w-4 text-dark-500" />
+                Números SMS
+              </Link>
+
               {isAdmin && (
                 <Link
                   href="/admin"

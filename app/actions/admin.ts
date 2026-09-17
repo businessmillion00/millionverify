@@ -5,11 +5,26 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/lib/auth';
 
+/**
+ * O papel no JWT vale 30 dias: um admin rebaixado (ou desativado) continuaria
+ * ajustando saldos e promovendo contas até a sessão expirar. O JWT serve de
+ * atalho para negar rápido; a fonte da verdade é o banco.
+ */
 const requireAdmin = async () => {
   const session = await auth();
   if (session?.user?.role !== 'ADMIN') {
     throw new Error('FORBIDDEN');
   }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { role: true, isActive: true },
+  });
+
+  if (!user || user.role !== 'ADMIN' || !user.isActive) {
+    throw new Error('FORBIDDEN');
+  }
+
   return session.user;
 };
 
